@@ -1,7 +1,6 @@
-from rest_framework import status, views, viewsets, generics
+from rest_framework import views, viewsets, generics
 from payment.models import Rental, Payment
 from utils.responses import CustomResponse
-from django.http import JsonResponse
 from utils.permissions import HasStoreStaffAccessRental, IsStoreStaff
 from django.utils import timezone
 from customer.models import Customer
