@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from users.serializers import UserSerializer
 from .models import Customer, Address, Country, City
+from films.serializers import FilmSerializer
 
 
 class CountrySerializer(serializers.ModelSerializer):
@@ -36,3 +37,10 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 class CustomerAddressUpdateCreateSerializer(serializers.Serializer):
     address_id = serializers.IntegerField()
+
+
+class RecommendedFilmsSerializer(FilmSerializer):
+    films_count_sum = serializers.SerializerMethodField()
+
+    def get_films_count_sum(self, object):
+        return object.films_count_sum

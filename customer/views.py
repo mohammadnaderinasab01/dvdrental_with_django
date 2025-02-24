@@ -3,12 +3,17 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Address, Customer
 from payment.models import Rental
 from payment.serializers import RentalSerializer
-from .serializers import AddressSerializer, CustomerAddressUpdateCreateSerializer
+from .serializers import AddressSerializer, CustomerAddressUpdateCreateSerializer, \
+    RecommendedFilmsSerializer
 import time
 from drf_spectacular.utils import extend_schema
 from payment.models import Payment
 from payment.serializers import PaymentSerializer
 from utils.responses import CustomResponse
+from films.models import Actor, Film, FilmActor
+from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField
+from django.db.models.functions import Coalesce
+from django.db import connection
 
 
 class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
@@ -90,3 +95,110 @@ class CustomerPaymentView(viewsets.ModelViewSet):
     def get_queryset(self):
         customer = self.request.user.customer
         return Payment.objects.filter(customer=customer)
+
+
+# normal version
+# class FilmRecommendationsForCustomer(generics.ListAPIView):
+#     serializer_class = RecommendedFilmsSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+
+#         start_time = time.time()
+
+#         customer = self.request.user.customer
+
+#         most_popular_actors = Actor.objects.prefetch_related('filmactor__set', 'filmactor__set__film__set', 'filmactor__set__film__set__inventory__set').annotate(
+#             films_count=Count(
+#                 'filmactor__film', filter=Q(
+#                     filmactor__film__inventory__rental__customer_id=customer.customer_id))).order_by('-films_count').values('actor_id', 'films_count')
+#         # print('most_popular_actors query: ', most_popular_actors.query)
+
+#         films_with_actor_films = Film.objects.select_related('language').prefetch_related('filmactor_set', 'filmactor_set__actor').annotate(
+#             films_count_sum=Coalesce(Sum(
+#                 Subquery(
+#                     most_popular_actors.filter(
+#                         actor_id=OuterRef('filmactor__actor__actor_id')
+#                     ).values('films_count')
+#                 )
+#             ), 0),
+#         ).order_by('-films_count_sum')
+#         # films_with_actor_films = Film.objects.select_related('language').prefetch_related('filmactor_set', 'filmactor_set__actor').annotate(
+#         #     films_count_sum=Count('filmactor'),
+#         # ).order_by('-films_count_sum')
+#         # films_with_actor_films = Film.objects.annotate(
+#         #     films_count_sum=Coalesce(Sum(
+#         #         Subquery(
+#         #             most_popular_actors.filter(
+#         #                 actor_id=OuterRef('filmactor__actor__actor_id')
+#         #             ).values('films_count')
+#         #         )
+#         #     ), 0),
+#         # ).order_by('-films_count_sum')
+#         # print('films_with_actor_films query: ', films_with_actor_films.query)
+
+#         print(films_with_actor_films[0])
+#         end_time = time.time()
+#         print(f"Query executed in {end_time - start_time:.4f} seconds")
+
+#         return films_with_actor_films
+
+#     def list(self, request, *args, **kwargs):
+#         print(1)
+#         queryset = self.filter_queryset(self.get_queryset())
+#         print(2)
+#         # Profile the pagination step
+#         pagination_start_time = time.time()
+#         page = self.paginate_queryset(queryset)
+#         pagination_end_time = time.time()
+#         print(f'Pagination took {pagination_end_time - pagination_start_time:.4f} seconds')
+#         print(3)
+#         if page is not None:
+#             print(4)
+#             serializer = self.get_serializer(page, many=True)
+#             print(5)
+#             return self.get_paginated_response(serializer.data)
+#         print(6)
+#         serializer = self.get_serializer(queryset, many=True)
+#         print(7)
+#         return CustomResponse.successful_200('')
+
+
+# extra-work version with the help of raw query
+
+
+class FilmRecommendationsForCustomer(generics.ListAPIView):
+    serializer_class = RecommendedFilmsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        start_time = time.time()
+
+        customer = self.request.user.customer
+
+        raw_query = """
+            WITH most_popular_actors AS (
+                SELECT a.actor_id, COUNT(fa.film_id) AS films_count
+                FROM actor a
+                JOIN film_actor fa ON a.actor_id = fa.actor_id
+                JOIN inventory i ON fa.film_id = i.film_id
+                JOIN rental r ON i.inventory_id = r.inventory_id
+                WHERE r.customer_id = %s
+                GROUP BY a.actor_id
+            )
+            SELECT f.film_id, f.title, SUM(mpa.films_count) AS films_count_sum
+            FROM film f
+            JOIN film_actor fa ON f.film_id = fa.film_id
+            JOIN most_popular_actors mpa ON fa.actor_id = mpa.actor_id
+            GROUP BY f.film_id, f.title
+            ORDER BY films_count_sum DESC
+        """
+        films_with_actor_films = Film.objects.raw(raw_query, [customer.customer_id], translations={
+            'films_count_sum': 'films_count_sum'
+        })
+
+        end_time = time.time()
+        print(f"Query executed in {end_time - start_time:.4f} seconds")
+
+        return films_with_actor_films
