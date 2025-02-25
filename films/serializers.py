@@ -67,3 +67,13 @@ class MostPopularActorsSerializer(ActorSerializer):
 
 class FilmAvailabilityRequestSerializer(serializers.Serializer):
     store_id = serializers.CharField(max_length=255)
+
+
+class MostInUsedLanguagesSerializer(LanguageSerializer):
+    total_films_usage = serializers.SerializerMethodField()
+
+    def get_total_films_usage(self, object):
+        try:
+            return object.total_films_usage
+        except:
+            return None

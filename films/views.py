@@ -1,8 +1,8 @@
 from rest_framework import generics, filters, views
-from .models import Film, Actor, Category, Inventory
+from .models import Film, Actor, Category, Inventory, Language
 from .serializers import FilmSerializer, TopRentedFilmsSerializer, ActorSerializer, \
     MostPopularActorsSerializer, CategorySerializer, InventorySerializer, \
-    FilmAvailabilityRequestSerializer
+    FilmAvailabilityRequestSerializer, MostInUsedLanguagesSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
@@ -121,3 +121,10 @@ class FilmAvailabilityView(views.APIView):
                 f'film with id: {pk} in store with id: {store_id} has {inventories.count()} inventories')
         else:
             return CustomResponse.not_found(f'film with id: {pk} in store with id: {store_id} has no inventory')
+
+
+class MostInUsedLanguagesView(generics.ListAPIView):
+    serializer_class = MostInUsedLanguagesSerializer
+
+    def get_queryset(self):
+        return Language.objects.annotate(total_films_usage=Count("film")).order_by('-total_films_usage')

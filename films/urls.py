@@ -11,4 +11,5 @@ urlpatterns = [
     path('film-details/<int:pk>/', views.FilmDetailsView.as_view(), name="film_details"),
     path('top-rented-films/', views.TopRentedFilmsView.as_view(), name="top_rented_films"),
     path('most-popular-actors/', views.MostPopularActorsView.as_view(), name="most_popular_actors"),
+    path('most-in-used-languages/', views.MostInUsedLanguagesView.as_view(), name='most_in_used_languages'),
 ]
