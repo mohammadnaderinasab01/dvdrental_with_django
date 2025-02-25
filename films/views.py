@@ -9,6 +9,7 @@ from drf_spectacular.types import OpenApiTypes
 from django.db.models import Count
 import time
 from utils.responses import CustomResponse
+from utils.pagination import PaginationWithCustomDataFormat
 
 
 class FilmListView(generics.ListAPIView):
@@ -128,3 +129,41 @@ class MostInUsedLanguagesView(generics.ListAPIView):
 
     def get_queryset(self):
         return Language.objects.annotate(total_films_usage=Count("film")).order_by('-total_films_usage')
+
+
+class FilmActorsView(generics.ListAPIView):
+    serializer_class = ActorSerializer
+    pagination_class = PaginationWithCustomDataFormat
+
+    def get_queryset(self):
+        film_id = self.kwargs.get('pk')
+        return Actor.objects.filter(filmactor__film__film_id=film_id)
+
+    def get(self, request, *args, **kwargs):
+        film_id = kwargs.get('pk')
+
+        if not film_id:
+            return CustomResponse.bad_request('film_id is required')
+
+        try:
+            film = Film.objects.get(film_id=film_id)
+            film_serializer = FilmSerializer(instance=film, many=False)
+        except:
+            return CustomResponse.not_found(f'film with id: {film_id} not found.')
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            actors_serializer = self.get_serializer(page, many=True)
+            return CustomResponse.json_response({
+                "film": film_serializer.data,
+                "actors": self.get_paginated_response(actors_serializer.data)
+            })
+
+        actors_serializer = self.get_serializer(queryset, many=True)
+
+        return CustomResponse.json_response({
+            "film": film_serializer.data,
+            "actors": actors_serializer.data
+        })
