@@ -115,26 +115,26 @@ class CustomerPaymentView(viewsets.ModelViewSet):
 #         # print('most_popular_actors query: ', most_popular_actors.query)
 
 #         films_with_actor_films = Film.objects.select_related('language').prefetch_related('filmactor_set', 'filmactor_set__actor').annotate(
-#             films_count_sum=Coalesce(Sum(
+#             actors_films_count_sum=Coalesce(Sum(
 #                 Subquery(
 #                     most_popular_actors.filter(
 #                         actor_id=OuterRef('filmactor__actor__actor_id')
 #                     ).values('films_count')
 #                 )
 #             ), 0),
-#         ).order_by('-films_count_sum')
+#         ).order_by('-actors_films_count_sum')
 #         # films_with_actor_films = Film.objects.select_related('language').prefetch_related('filmactor_set', 'filmactor_set__actor').annotate(
-#         #     films_count_sum=Count('filmactor'),
-#         # ).order_by('-films_count_sum')
+#         #     actors_films_count_sum=Count('filmactor'),
+#         # ).order_by('-actors_films_count_sum')
 #         # films_with_actor_films = Film.objects.annotate(
-#         #     films_count_sum=Coalesce(Sum(
+#         #     actors_films_count_sum=Coalesce(Sum(
 #         #         Subquery(
 #         #             most_popular_actors.filter(
 #         #                 actor_id=OuterRef('filmactor__actor__actor_id')
 #         #             ).values('films_count')
 #         #         )
 #         #     ), 0),
-#         # ).order_by('-films_count_sum')
+#         # ).order_by('-actors_films_count_sum')
 #         # print('films_with_actor_films query: ', films_with_actor_films.query)
 
 #         print(films_with_actor_films[0])
@@ -187,15 +187,15 @@ class FilmRecommendationsForCustomer(generics.ListAPIView):
                 WHERE r.customer_id = %s
                 GROUP BY a.actor_id
             )
-            SELECT f.film_id, f.title, SUM(mpa.films_count) AS films_count_sum
+            SELECT f.film_id, f.title, SUM(mpa.films_count) AS actors_films_count_sum
             FROM film f
             JOIN film_actor fa ON f.film_id = fa.film_id
             JOIN most_popular_actors mpa ON fa.actor_id = mpa.actor_id
             GROUP BY f.film_id, f.title
-            ORDER BY films_count_sum DESC
+            ORDER BY actors_films_count_sum DESC
         """
         films_with_actor_films = Film.objects.raw(raw_query, [customer.customer_id], translations={
-            'films_count_sum': 'films_count_sum'
+            'actors_films_count_sum': 'actors_films_count_sum'
         })
 
         end_time = time.time()

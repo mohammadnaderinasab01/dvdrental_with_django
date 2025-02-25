@@ -40,7 +40,7 @@ class CustomerAddressUpdateCreateSerializer(serializers.Serializer):
 
 
 class RecommendedFilmsSerializer(FilmSerializer):
-    films_count_sum = serializers.SerializerMethodField()
+    actors_films_count_sum = serializers.SerializerMethodField()
 
-    def get_films_count_sum(self, object):
-        return object.films_count_sum
+    def get_actors_films_count_sum(self, object):
+        return object.actors_films_count_sum
