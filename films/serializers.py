@@ -63,3 +63,7 @@ class MostPopularActorsSerializer(ActorSerializer):
             return object.rental_count
         except:
             return None
+
+
+class FilmAvailabilityRequestSerializer(serializers.Serializer):
+    store_id = serializers.CharField(max_length=255)

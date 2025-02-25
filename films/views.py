@@ -1,12 +1,14 @@
-from rest_framework import generics, filters
+from rest_framework import generics, filters, views
 from .models import Film, Actor, Category, Inventory
 from .serializers import FilmSerializer, TopRentedFilmsSerializer, ActorSerializer, \
-    MostPopularActorsSerializer, CategorySerializer, InventorySerializer
+    MostPopularActorsSerializer, CategorySerializer, InventorySerializer, \
+    FilmAvailabilityRequestSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import Count
 import time
+from utils.responses import CustomResponse
 
 
 class FilmListView(generics.ListAPIView):
@@ -94,3 +96,28 @@ class MostPopularActorsView(generics.ListAPIView):
         end_time = time.time()
         print(f"Query executed in {end_time - start_time:.4f} seconds")
         return queryset
+
+
+class FilmAvailabilityView(views.APIView):
+
+    @extend_schema(parameters=[
+        OpenApiParameter(name="store_id", type=OpenApiTypes.STR)
+    ])
+    def get(self, request, pk):
+        request_serializer = FilmAvailabilityRequestSerializer(data=request.GET)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+        store_id = request_serializer.validated_data.get('store_id')
+
+        try:
+            film = Film.objects.get(film_id=pk)
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f"film with id: {pk} not found.")
+
+        inventories = Inventory.objects.filter(film=film, store_id=store_id)
+
+        if inventories.exists():
+            return CustomResponse.successful_200(
+                f'film with id: {pk} in store with id: {store_id} has {inventories.count()} inventories')
+        else:
+            return CustomResponse.not_found(f'film with id: {pk} in store with id: {store_id} has no inventory')
