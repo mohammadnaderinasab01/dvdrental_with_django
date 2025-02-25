@@ -91,6 +91,28 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis as the broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis as the result backend
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'  # Or your desired timezone
+CELERY_ENABLE_UTC = True
+
+# Optional: Beat Scheduler for periodic tasks
+# CELERY_BEAT_SCHEDULE = {
+#     'send-overdue-notifications': {
+#         'task': 'payment.tasks.send_overdue_notifications',
+#         'schedule': 3600,  # Run every hour (in seconds)
+#     },
+# }
+
+# notifier email Configuration
+MAIL_SERVER_HOST = os.getenv('MAIL_SERVER_HOST')
+NOTIFIER_EMAIL_ADDRESS = os.getenv('NOTIFIER_EMAIL_ADDRESS')
+NOTIFIER_EMAIL_PASSWORD = os.getenv('NOTIFIER_EMAIL_PASSWORD')
+
 AUTH_USER_MODEL = 'users.User'
 
 ROOT_URLCONF = 'core.urls'
