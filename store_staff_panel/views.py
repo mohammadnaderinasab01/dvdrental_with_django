@@ -15,6 +15,7 @@ from drf_spectacular.types import OpenApiTypes
 import time
 from payment.serializers import PaymentSerializer
 from django.core.exceptions import ValidationError
+from films.serializers import InventorySerializer
 
 
 class ReturnRentalView(views.APIView):
@@ -144,3 +145,27 @@ class TotalRevenueView(views.APIView):
         except ValidationError:
             return CustomResponse.bad_request(
                 'start_date and end_date must be date. the format is like this: YYYY-MM-DD')
+
+
+class AddFilmInventoryToStoreView(views.APIView):
+    permission_classes = [IsStoreStaff]
+
+    def post(self, request, pk):
+        store = request.user.staff.store
+        if not store:
+            return CustomResponse.bad_request(
+                f'staff with id: {request.user.staff.staff_id} does not attend to any store')
+
+        try:
+            film = Film.objects.get(film_id=pk)
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {pk} not found.')
+
+        inventory = Inventory.objects.create(
+            film=film,
+            store_id=store.store_id,
+            last_update=timezone.now()
+        )
+        serializer = InventorySerializer(instance=inventory)
+
+        return CustomResponse.successful_201(serializer.data)
