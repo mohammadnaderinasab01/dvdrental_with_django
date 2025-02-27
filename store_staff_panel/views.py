@@ -169,3 +169,38 @@ class AddFilmInventoryToStoreView(views.APIView):
         serializer = InventorySerializer(instance=inventory)
 
         return CustomResponse.successful_201(serializer.data)
+
+
+class RemoveInventoryFromStoreView(views.APIView):
+    permission_classes = [IsStoreStaff]
+
+    def post(self, request, pk):
+        store = request.user.staff.store
+        if not store:
+            return CustomResponse.bad_request(
+                f'staff with id: {request.user.staff.staff_id} does not attend to any store')
+
+        try:
+            inventory = Inventory.objects.get(inventory_id=pk, store_id=store.store_id)
+            inventory.delete()
+            return CustomResponse.successful_204_no_content()
+        except Inventory.DoesNotExist:
+            return CustomResponse.not_found(f'inventory with id: {pk} in store with id: {store.store_id} not found.')
+
+
+class RemoveAllFilmInventoriesFromStoreView(views.APIView):
+    def post(self, request, pk):
+        store = request.user.staff.store
+        print('store: ', store.store_id)
+        if not store:
+            return CustomResponse.bad_request(
+                f'staff with id: {request.user.staff.staff_id} does not attend to any store')
+
+        try:
+            film = Film.objects.get(film_id=pk)
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {pk} in store with id: {store.store_id} not found.')
+
+        film.inventory_set.filter(store_id=store.store_id).delete()
+
+        return CustomResponse.successful_204_no_content()

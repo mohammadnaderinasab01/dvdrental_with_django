@@ -11,4 +11,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('total-revenue/', views.TotalRevenueView.as_view(), name='total_revenue'),
     path('add-film-inventory/<int:pk>/', views.AddFilmInventoryToStoreView.as_view(), name="add_film"),
+    path('remove-inventory/<int:pk>/', views.RemoveInventoryFromStoreView.as_view(), name='remove_inventory'),
+    path('remove-all-film-inventories-from-store/<int:pk>/',
+         views.RemoveAllFilmInventoriesFromStoreView.as_view(),
+         name="remove_all_film_inventories_from_store"),
 ]
