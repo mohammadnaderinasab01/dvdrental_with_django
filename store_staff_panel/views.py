@@ -200,6 +200,12 @@ class RemoveAllFilmInventoriesFromStoreView(views.APIView):
         except Film.DoesNotExist:
             return CustomResponse.not_found(f'film with id: {pk} in store with id: {store.store_id} not found.')
 
-        film.inventory_set.filter(store_id=store.store_id).delete()
+        inventories = film.inventory_set.filter(store_id=store.store_id)
+
+        if not inventories.exists():
+            return CustomResponse.not_found(
+                f'No inventories found for film with id: {pk} in store with id: {store.store_id}.')
+
+        inventories.delete()
 
         return CustomResponse.successful_204_no_content()
