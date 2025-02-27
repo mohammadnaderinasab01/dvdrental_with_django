@@ -191,7 +191,6 @@ class RemoveInventoryFromStoreView(views.APIView):
 class RemoveAllFilmInventoriesFromStoreView(views.APIView):
     def post(self, request, pk):
         store = request.user.staff.store
-        print('store: ', store.store_id)
         if not store:
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
