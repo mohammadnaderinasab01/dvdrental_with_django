@@ -4,7 +4,7 @@ from utils.responses import CustomResponse
 from utils.permissions import HasStoreStaffAccessRental, IsStoreStaff
 from django.utils import timezone
 from customer.models import Customer
-from store.models import Staff
+from store.models import Store, Staff
 from films.models import Film, Inventory
 from django.db import transaction
 from .serializers import RentFilmSerializer
@@ -103,7 +103,10 @@ class StaffPaymentView(viewsets.ModelViewSet):
     http_method_names = ['get']
 
     def get_queryset(self):
-        staff = self.request.user.staff
+        try:
+            staff = self.request.user.staff
+        except Staff.DoesNotExist:
+            return Payment.objects.none()
         return Payment.objects.filter(staff=staff)
 
 
@@ -151,8 +154,9 @@ class AddFilmInventoryToStoreView(views.APIView):
     permission_classes = [IsStoreStaff]
 
     def post(self, request, pk):
-        store = request.user.staff.store
-        if not store:
+        try:
+            store = request.user.staff.store
+        except Store.DoesNotExist:
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 
@@ -175,8 +179,9 @@ class RemoveInventoryFromStoreView(views.APIView):
     permission_classes = [IsStoreStaff]
 
     def post(self, request, pk):
-        store = request.user.staff.store
-        if not store:
+        try:
+            store = request.user.staff.store
+        except Store.DoesNotExist:
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 
@@ -190,8 +195,9 @@ class RemoveInventoryFromStoreView(views.APIView):
 
 class RemoveAllFilmInventoriesFromStoreView(views.APIView):
     def post(self, request, pk):
-        store = request.user.staff.store
-        if not store:
+        try:
+            store = request.user.staff.store
+        except Store.DoesNotExist:
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 

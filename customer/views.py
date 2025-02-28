@@ -1,4 +1,4 @@
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, views
 from rest_framework.permissions import IsAuthenticated
 from .models import Address, Customer
 from payment.models import Rental
@@ -11,7 +11,7 @@ from payment.models import Payment
 from payment.serializers import PaymentSerializer
 from utils.responses import CustomResponse
 from films.models import Actor, Film, FilmActor
-from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField
+from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField, FloatField
 from django.db.models.functions import Coalesce
 from django.db import connection
 
@@ -25,14 +25,17 @@ class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
         request=CustomerAddressUpdateCreateSerializer
     )
     def post(self, request, *args, **kwargs):
-        if self.request.user.customer.address:
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
+        if customer.address:
             return CustomResponse.bad_request('you have an address already')
         request_serializer = CustomerAddressUpdateCreateSerializer(data=request.data)
         if request_serializer.is_valid():
             if not Address.objects.filter(address_id=request_serializer.validated_data['address_id']).exists():
                 return CustomResponse.not_found(
                     f'No address found with id: {request_serializer.validated_data["address_id"]}')
-            customer = request.user.customer
             customer.address = Address.objects.get(address_id=request_serializer.validated_data['address_id'])
             customer.save()
             response_serializer = AddressSerializer(request.user.customer.address)
@@ -40,8 +43,12 @@ class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
         return CustomResponse.bad_request(request_serializer.errors)
 
     def get(self, request, *args, **kwargs):
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
         start_time = time.time()
-        if not self.request.user.customer.address:
+        if not customer.address:
             return CustomResponse.not_found('No address found for you')
         serializer = AddressSerializer(instance=self.request.user.customer.address)
         end_time = time.time()
@@ -52,15 +59,18 @@ class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
         request=CustomerAddressUpdateCreateSerializer
     )
     def put(self, request, *args, **kwargs):
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
         start_time = time.time()
-        if not self.request.user.customer.address:
+        if not customer.address:
             return CustomResponse.not_found('No address found for you')
         request_serializer = CustomerAddressUpdateCreateSerializer(data=request.data)
         if request_serializer.is_valid():
             if not Address.objects.filter(address_id=request_serializer.validated_data['address_id']).exists():
                 return CustomResponse.not_found(
                     f'No address found with id: {request_serializer.validated_data["address_id"]}')
-            customer = request.user.customer
             customer.address = Address.objects.get(address_id=request_serializer.validated_data['address_id'])
             customer.save()
             response_serializer = AddressSerializer(request.user.customer.address)
@@ -85,6 +95,13 @@ class CustomerRentalView(generics.ListAPIView):
     def get_queryset(self):
         return Rental.objects.filter(customer=self.request.user.customer)
 
+    def get(self, request, *args, **kwargs):
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
+        return super().get(request, *args, **kwargs)
+
 
 class CustomerPaymentView(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
@@ -93,10 +110,24 @@ class CustomerPaymentView(viewsets.ModelViewSet):
     http_method_names = ['get']
 
     def get_queryset(self):
-        customer = self.request.user.customer
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
         return Payment.objects.filter(customer=customer)
 
 
+class CustomerTotalPaymentAmountView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer instance found for this user')
+        total_payment_amount = Payment.objects.filter(customer=customer).aggregate(Sum('amount')).get('amount__sum')
+        return CustomResponse.json_response({'total_payment_amount': float(
+                total_payment_amount) if total_payment_amount is not None else total_payment_amount})
 # normal version
 # class FilmRecommendationsForCustomer(generics.ListAPIView):
 #     serializer_class = RecommendedFilmsSerializer
