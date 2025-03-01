@@ -101,12 +101,12 @@ CELERY_TIMEZONE = 'UTC'  # Or your desired timezone
 CELERY_ENABLE_UTC = True
 
 # Optional: Beat Scheduler for periodic tasks
-# CELERY_BEAT_SCHEDULE = {
-#     'send-overdue-notifications': {
-#         'task': 'payment.tasks.send_overdue_notifications',
-#         'schedule': 3600,  # Run every hour (in seconds)
-#     },
-# }
+CELERY_BEAT_SCHEDULE = {
+    'send-overdue-notifications': {
+        'task': 'admin_panel.tasks.send_inventory_rental_overdue_email',
+        'schedule': 60 * 60 * 24,  # Run every day (in seconds)
+    },
+}
 
 # notifier email Configuration
 MAIL_SERVER_HOST = os.getenv('MAIL_SERVER_HOST')
