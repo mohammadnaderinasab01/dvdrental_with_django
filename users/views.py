@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema
 from .models import User
 from django.utils.timezone import now
 from utils.responses import CustomResponse
+import time
 
 
 class LoginView(APIView):
@@ -20,16 +21,23 @@ class LoginView(APIView):
     def post(self, request):
         username = request.data.get('email', None)
         password = request.data.get('password', None)
-
+        start_time = time.time()
         authenticated_user = authenticate(username=username, password=password)
-
+        end_time = time.time()
+        print(f"Query executed in {end_time - start_time:.4f} seconds")
+        start_time = time.time()
         if authenticated_user:
+            start_time = time.time()
             authenticated_user.last_login = now()
             authenticated_user.save(update_fields=['last_login'])
             serializer = UserLoginSerializer(authenticated_user)
+            end_time = time.time()
+            print(f"Query executed in {end_time - start_time:.4f} seconds")
             return CustomResponse.successful_200(
                 result=serializer.data,
                 message='you logged in successfully')
+        end_time = time.time()
+        print(f"Query executed in {end_time - start_time:.4f} seconds")
         return CustomResponse.unauthenticated('Wrong Credentials')
 
 
