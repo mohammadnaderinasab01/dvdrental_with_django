@@ -1,6 +1,6 @@
 from rest_framework import generics, viewsets, views, filters
 from rest_framework.permissions import IsAdminUser
-from customer.models import Customer
+from customer.models import Customer, Country
 from customer.serializers import CustomerSerializer
 from payment.models import Rental, Payment
 from django.db.models import Count, Q, Sum
@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
-from .serializers import TopPerformingStoresSerializer
+from .serializers import TopPerformingStoresSerializer, CountriesHavingMustCustomersSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 
@@ -102,3 +102,11 @@ class TopPerformingStoresView(generics.ListAPIView):
         queryset = Store.objects.annotate(total_rental_records=Count(
             'manager_staff__rental')).order_by('-total_rental_records')
         return queryset
+
+
+class CountriesHavingMustCustomersView(generics.ListAPIView):
+    serializer_class = CountriesHavingMustCustomersSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Country.objects.annotate(total_customers=Count('city__address__customer')).order_by('-total_customers')

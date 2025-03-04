@@ -11,4 +11,5 @@ urlpatterns = [
     path('top-renting-customers/', views.TopRentingCustomersView.as_view()),
     path('store-total-revenue/<int:pk>/', views.StoreTotalRevenueView.as_view()),
     path('top-performing-stores/', views.TopPerformingStoresView.as_view()),
+    path('countries-having-must-customers/', views.CountriesHavingMustCustomersView.as_view()),
 ]
