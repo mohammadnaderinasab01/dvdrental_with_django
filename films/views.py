@@ -10,6 +10,7 @@ from django.db.models import Count
 import time
 from utils.responses import CustomResponse
 from utils.pagination import PaginationWithCustomDataFormat
+from rest_framework.permissions import IsAdminUser
 
 
 class FilmListView(generics.ListAPIView):
@@ -167,3 +168,14 @@ class FilmActorsView(generics.ListAPIView):
             "film": film_serializer.data,
             "actors": actors_serializer.data
         })
+
+
+class FilmCreateView(generics.CreateAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = FilmSerializer
+
+
+class FilmDeleteView(generics.DestroyAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = FilmSerializer
+    queryset = Film.objects.all()
