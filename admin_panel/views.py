@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
-from .serializers import TopPerformingStoresSerializer, CountriesHavingMustCustomersSerializer
+from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 
@@ -104,8 +104,8 @@ class TopPerformingStoresView(generics.ListAPIView):
         return queryset
 
 
-class CountriesHavingMustCustomersView(generics.ListAPIView):
-    serializer_class = CountriesHavingMustCustomersSerializer
+class CountriesHavingMostCustomersView(generics.ListAPIView):
+    serializer_class = CountriesHavingMostCustomersSerializer
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):

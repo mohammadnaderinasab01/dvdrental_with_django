@@ -13,7 +13,7 @@ class TopPerformingStoresSerializer(StoreSerializer):
             return None
 
 
-class CountriesHavingMustCustomersSerializer(CountrySerializer):
+class CountriesHavingMostCustomersSerializer(CountrySerializer):
     total_customers = serializers.SerializerMethodField()
 
     def get_total_customers(self, object):
