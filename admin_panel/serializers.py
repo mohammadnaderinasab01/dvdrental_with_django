@@ -21,3 +21,7 @@ class CountriesHavingMostCustomersSerializer(CountrySerializer):
             return object.total_customers
         except:
             return None
+
+
+class AddOrRemoveActorToOrFromFilmRequestSerializer(serializers.Serializer):
+    actor_id = serializers.IntegerField()

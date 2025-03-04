@@ -6,13 +6,15 @@ from payment.models import Rental, Payment
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
-from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer
+from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer, \
+    AddOrRemoveActorToOrFromFilmRequestSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
+from films.models import Film, Actor, FilmActor
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -110,3 +112,56 @@ class CountriesHavingMostCustomersView(generics.ListAPIView):
 
     def get_queryset(self):
         return Country.objects.annotate(total_customers=Count('city__address__customer')).order_by('-total_customers')
+
+
+class AddActorToFilmView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(request=AddOrRemoveActorToOrFromFilmRequestSerializer)
+    def post(self, request, pk):
+        request_serializer = AddOrRemoveActorToOrFromFilmRequestSerializer(data=request.data)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+        actor_id = request_serializer.validated_data.get('actor_id')
+        try:
+            film = Film.objects.get(film_id=pk)
+            actor = Actor.objects.get(actor_id=actor_id)
+            if FilmActor.objects.filter(film=film, actor=actor).exists():
+                return CustomResponse.bad_request(f'actor with id: {actor_id} in film with id: {pk} already exists.')
+            FilmActor.objects.create(
+                actor=actor,
+                film=film,
+                last_update=timezone.now()
+            )
+            return CustomResponse.successful_200(f'actor with id: {actor_id} successfully added to film with id: {pk}.')
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {pk} not found.')
+        except Actor.DoesNotExist:
+            return CustomResponse.not_found(f'actor with id: {actor_id} not found.')
+        except:
+            return CustomResponse.server_error('an error occurred')
+
+
+class RemoveActorFromFilmView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(request=AddOrRemoveActorToOrFromFilmRequestSerializer)
+    def post(self, request, pk):
+        request_serializer = AddOrRemoveActorToOrFromFilmRequestSerializer(data=request.data)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+        actor_id = request_serializer.validated_data.get('actor_id')
+        try:
+            film = Film.objects.get(film_id=pk)
+            actor = Actor.objects.get(actor_id=actor_id)
+            if not FilmActor.objects.filter(film=film, actor=actor).exists():
+                return CustomResponse.bad_request(f'actor with id: {actor_id} in film with id: {pk} does not exist.')
+            FilmActor.objects.get(film=film, actor=actor).delete()
+            return CustomResponse.successful_200(
+                f'actor with id: {actor_id} successfully removed from film with id: {pk}.')
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {pk} not found.')
+        except Actor.DoesNotExist:
+            return CustomResponse.not_found(f'actor with id: {actor_id} not found.')
+        except:
+            return CustomResponse.server_error('an error occurred')
