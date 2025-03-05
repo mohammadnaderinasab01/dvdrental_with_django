@@ -2,15 +2,18 @@ from rest_framework import generics, filters, views
 from .models import Film, Actor, Category, Inventory, Language
 from .serializers import FilmSerializer, TopRentedFilmsSerializer, ActorSerializer, \
     MostPopularActorsSerializer, CategorySerializer, InventorySerializer, \
-    FilmAvailabilityRequestSerializer, MostInUsedLanguagesSerializer
+    FilmAvailabilityRequestSerializer, MostInUsedLanguagesSerializer, \
+    MostPaidForFilmsSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
-from django.db.models import Count
+from django.db.models import Count, Sum
+from django.db.models.functions import Coalesce
 import time
 from utils.responses import CustomResponse
 from utils.pagination import PaginationWithCustomDataFormat
 from rest_framework.permissions import IsAdminUser
+import decimal
 
 
 class FilmListView(generics.ListAPIView):
@@ -86,6 +89,14 @@ class TopRentedFilmsView(generics.ListAPIView):
         end_time = time.time()
         print(f"Query executed in {end_time - start_time:.4f} seconds")
         return queryset
+
+
+class MostPaidForFilmsView(generics.ListAPIView):
+    serializer_class = MostPaidForFilmsSerializer
+
+    def get_queryset(self):
+        return Film.objects.annotate(total_paid_amount=Coalesce(Sum(
+            'inventory__rental__payment__amount'), decimal.Decimal(0))).order_by('-total_paid_amount')
 
 
 class MostPopularActorsView(generics.ListAPIView):

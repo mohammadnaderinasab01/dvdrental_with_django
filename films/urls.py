@@ -15,4 +15,5 @@ urlpatterns = [
     path('most-in-used-languages/', views.MostInUsedLanguagesView.as_view(), name='most_in_used_languages'),
     path('create-film/', views.FilmCreateView.as_view(), name='create_film'),
     path('delete-film/<int:pk>/', views.FilmDeleteView.as_view(), name='delete_film'),
+    path('most-paid-for-films/', views.MostPaidForFilmsView.as_view(), name='most_paid_for_films'),
 ]

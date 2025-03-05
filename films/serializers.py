@@ -69,6 +69,16 @@ class TopRentedFilmsSerializer(FilmSerializer):
             return None
 
 
+class MostPaidForFilmsSerializer(FilmSerializer):
+    total_paid_amount = serializers.SerializerMethodField()
+
+    def get_total_paid_amount(self, object):
+        try:
+            return object.total_paid_amount
+        except:
+            return None
+
+
 class MostPopularActorsSerializer(ActorSerializer):
     rental_count = serializers.SerializerMethodField()
 
