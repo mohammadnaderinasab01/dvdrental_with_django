@@ -16,6 +16,8 @@ from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField,
 from django.db.models.functions import Coalesce
 from django.db import connection
 from utils.filters import DateRangeFilter
+from utils.constants import parse_date
+from django.core.exceptions import ValidationError
 
 
 class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
@@ -105,9 +107,17 @@ class CustomerRentalView(generics.ListAPIView):
     ])
     def get(self, request, *args, **kwargs):
         try:
+            start_date = request.query_params.get('start_date', None)
+            end_date = request.query_params.get('end_date', None)
+            if start_date:
+                parse_date(start_date)
+            if end_date:
+                parse_date(end_date)
             customer = self.request.user.customer
         except Customer.DoesNotExist:
             return CustomResponse.not_found('no customer instance found for this user')
+        except ValidationError as e:
+            return CustomResponse.bad_request(e)
         return super().get(request, *args, **kwargs)
 
 
