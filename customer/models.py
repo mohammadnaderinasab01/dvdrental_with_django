@@ -1,5 +1,6 @@
 from django.db import models
 from users.models import User
+from films.models import Film
 
 
 class Address(models.Model):
@@ -50,3 +51,16 @@ class City(models.Model):
 
     class Meta:
         db_table = 'city'
+
+
+class WishList(models.Model):
+    film = models.OneToOneField(Film, models.DO_NOTHING, primary_key=True)
+    customer = models.ForeignKey(Customer, models.DO_NOTHING)
+    last_update = models.DateTimeField()
+
+    class Meta:
+        db_table = 'wishlist'
+        unique_together = (('film', 'customer'),)
+
+    def __str__(self):
+        return f"film: {self.film.film_id} for customer: {self.customer.customer_id}"
