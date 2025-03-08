@@ -1,10 +1,10 @@
 from rest_framework import generics, viewsets, views
 from rest_framework.permissions import IsAuthenticated
-from .models import Address, Customer
+from .models import Address, Customer, WishList
 from payment.models import Rental
 from payment.serializers import RentalSerializer
 from .serializers import AddressSerializer, CustomerAddressUpdateCreateSerializer, \
-    RecommendedFilmsSerializer
+    RecommendedFilmsSerializer, WishListSerializer
 import time
 from drf_spectacular.utils import extend_schema
 from payment.models import Payment
@@ -103,7 +103,7 @@ class CustomerRentalView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
-class CustomerPaymentView(viewsets.ModelViewSet):
+class CustomerPaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
@@ -233,3 +233,21 @@ class FilmRecommendationsForCustomer(generics.ListAPIView):
         print(f"Query executed in {end_time - start_time:.4f} seconds")
 
         return films_with_actor_films
+
+
+class WishListViewSet(viewsets.ModelViewSet):
+    queryset = WishList.objects.all()
+    serializer_class = WishListSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'delete']
+
+    def update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    def get_queryset(self):
+        try:
+            customer = self.request.user.customer
+        except Customer.DoesNotExist:
+            return WishList.objects.none()
+        return WishList.objects.filter(customer=customer)

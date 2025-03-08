@@ -54,7 +54,7 @@ class City(models.Model):
 
 
 class WishList(models.Model):
-    film = models.OneToOneField(Film, models.DO_NOTHING, primary_key=True)
+    film = models.ForeignKey(Film, models.DO_NOTHING, primary_key=True)
     customer = models.ForeignKey(Customer, models.DO_NOTHING)
     last_update = models.DateTimeField()
 

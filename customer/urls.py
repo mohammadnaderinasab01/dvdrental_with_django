@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 
 
 router = DefaultRouter()
-router.register('customer-payments', views.CustomerPaymentView)
+router.register('customer-payments', views.CustomerPaymentViewSet)
+router.register('customer-wishlist', views.WishListViewSet)
 
 
 urlpatterns = [
