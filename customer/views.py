@@ -15,6 +15,7 @@ from films.models import Actor, Film, FilmActor
 from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField, FloatField
 from django.db.models.functions import Coalesce
 from django.db import connection
+from utils.filters import DateRangeFilter
 
 
 class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
@@ -92,10 +93,16 @@ class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
 class CustomerRentalView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = RentalSerializer
+    filter_backends = [DateRangeFilter]
+    filterset_fields = ['rental_date', 'return_date']
 
     def get_queryset(self):
         return Rental.objects.filter(customer=self.request.user.customer)
 
+    @extend_schema(parameters=[
+        OpenApiParameter(name="start_date", type=OpenApiTypes.STR),
+        OpenApiParameter(name="end_date", type=OpenApiTypes.STR),
+    ])
     def get(self, request, *args, **kwargs):
         try:
             customer = self.request.user.customer
@@ -129,6 +136,7 @@ class CustomerTotalPaymentAmountView(views.APIView):
         total_payment_amount = Payment.objects.filter(customer=customer).aggregate(Sum('amount')).get('amount__sum')
         return CustomResponse.json_response({'total_payment_amount': float(
                 total_payment_amount) if total_payment_amount is not None else total_payment_amount})
+
 # normal version
 # class FilmRecommendationsForCustomer(generics.ListAPIView):
 #     serializer_class = RecommendedFilmsSerializer
