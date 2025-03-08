@@ -171,3 +171,16 @@ class WishListViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = WishList.objects.all()
     permission_classes = [IsAdminUser]
     serializer_class = WishListSerializer
+
+
+class CustomerWishListView(generics.ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = WishListSerializer
+
+    def get_queryset(self):
+        customer_id = self.kwargs.get('customer_id')
+        try:
+            customer = Customer.objects.get(customer_id=customer_id)
+            return WishList.objects.filter(customer=customer)
+        except Customer.DoesNotExist:
+            return WishList.objects.none()

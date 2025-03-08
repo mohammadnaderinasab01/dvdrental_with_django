@@ -17,4 +17,5 @@ urlpatterns = [
     path('customers-wishlist/', views.WishListViewSet.as_view({
         'get': 'list',
     }), name='customer_wishlist'),
+    path('customer-wishlist/<int:customer_id>/', views.CustomerWishListView.as_view(), name="customer_wishlist"),
 ]
