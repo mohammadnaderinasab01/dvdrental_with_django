@@ -8,11 +8,12 @@ DATE_FORMATS = [
 ]
 
 
-def parse_date(date_str):
+def validate_date_format(date_str):
     """Try parsing date string with multiple formats"""
     for date_format in DATE_FORMATS:
         try:
-            return datetime.strptime(date_str, date_format)
+            formatted_date = datetime.strptime(date_str, date_format)
+            return
         except ValueError:
             continue
     raise exceptions.ValidationError(f'Invalid date format. Supported formats: {", ".join(DATE_FORMATS)}')
