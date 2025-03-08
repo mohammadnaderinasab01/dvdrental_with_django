@@ -46,3 +46,7 @@ class CustomResponse:
     @staticmethod
     def json_response(data):
         return JsonResponse(data)
+
+    @staticmethod
+    def method_not_allowed(message):
+        return Response({'detail': message}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

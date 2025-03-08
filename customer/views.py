@@ -6,7 +6,8 @@ from payment.serializers import RentalSerializer
 from .serializers import AddressSerializer, CustomerAddressUpdateCreateSerializer, \
     RecommendedFilmsSerializer, WishListSerializer
 import time
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from payment.models import Payment
 from payment.serializers import PaymentSerializer
 from utils.responses import CustomResponse
@@ -241,9 +242,19 @@ class WishListViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post', 'delete']
 
-    def update(self, request, *args, **kwargs):
-        kwargs['partial'] = True
-        return super().update(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        film_id = kwargs.get('film_id')
+        try:
+            customer_id = request.user.customer.customer_id
+            WishList.objects.get(customer__customer_id=customer_id, film__film_id=film_id).delete()
+            return CustomResponse.successful_204_no_content()
+        except WishList.DoesNotExist:
+            return CustomResponse.not_found(
+                f'no wishlist found with customer_id: {customer_id} and film_id: {film_id}')
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('no customer found.')
+        except Film.DoesNotExist:
+            return CustomResponse.not_found('no film found.')
 
     def get_queryset(self):
         try:

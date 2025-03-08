@@ -1,7 +1,7 @@
 from rest_framework import generics, viewsets, views, filters
 from rest_framework.permissions import IsAdminUser
-from customer.models import Customer, Country
-from customer.serializers import CustomerSerializer
+from customer.models import Customer, Country, WishList
+from customer.serializers import CustomerSerializer, WishListSerializer
 from payment.models import Rental, Payment
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
@@ -165,3 +165,9 @@ class RemoveActorFromFilmView(views.APIView):
             return CustomResponse.not_found(f'actor with id: {actor_id} not found.')
         except:
             return CustomResponse.server_error('an error occurred')
+
+
+class WishListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = WishList.objects.all()
+    permission_classes = [IsAdminUser]
+    serializer_class = WishListSerializer

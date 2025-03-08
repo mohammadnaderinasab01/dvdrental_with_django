@@ -5,7 +5,6 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register('customer-payments', views.CustomerPaymentViewSet)
-router.register('customer-wishlist', views.WishListViewSet)
 
 
 urlpatterns = [
@@ -14,4 +13,11 @@ urlpatterns = [
     path('film-recommendations-for-customer/', views.FilmRecommendationsForCustomer.as_view()),
     path('total-payment-amount/', views.CustomerTotalPaymentAmountView.as_view()),
     path('', include(router.urls)),
+    path('customer-wishlist/', views.WishListViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='customer_wishlist'),
+    path('customer-wishlist/<int:film_id>/', views.WishListViewSet.as_view({
+        'delete': 'destroy'
+    }), name='delete_customer_wishlist'),
 ]
