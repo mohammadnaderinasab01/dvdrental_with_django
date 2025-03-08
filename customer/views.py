@@ -114,7 +114,7 @@ class CustomerPaymentViewSet(viewsets.ModelViewSet):
         try:
             customer = self.request.user.customer
         except Customer.DoesNotExist:
-            return CustomResponse.not_found('no customer instance found for this user')
+            return Payment.objects.none()
         return Payment.objects.filter(customer=customer)
 
 
