@@ -239,7 +239,7 @@ class WishListViewSet(viewsets.ModelViewSet):
     queryset = WishList.objects.all()
     serializer_class = WishListSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'put', 'delete']
+    http_method_names = ['get', 'post', 'delete']
 
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True
