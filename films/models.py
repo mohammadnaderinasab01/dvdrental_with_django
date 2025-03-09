@@ -35,6 +35,29 @@ class Film(models.Model):
         return self.title
 
 
+class FilmScore(models.Model):
+    film = models.ForeignKey(Film, on_delete=models.DO_NOTHING)
+    customer = models.ForeignKey('customer.Customer', on_delete=models.DO_NOTHING)
+    last_update = models.DateTimeField()
+
+    SCORE_CHOICES = [
+        (0, '0'),
+        (1, '1'),
+        (2, '2'),
+        (3, '3'),
+        (4, '4'),
+        (5, '5'),
+    ]
+    score = models.IntegerField(choices=SCORE_CHOICES, null=True, blank=True, default=None)
+
+    class Meta:
+        db_table = 'film_score'
+        unique_together = (('film', 'customer'),)
+
+    def __str__(self):
+        return f"film: {self.film.film_id} with customer: {self.customer.customer_id} scored: {self.score}"
+
+
 class Category(models.Model):
     category_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=25)
