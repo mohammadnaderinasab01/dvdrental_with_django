@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import PBKDF2PasswordHasher
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -56,6 +57,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+]
+PBKDF2PasswordHasher.iterations = 260000
 
 # djangorestframework configuration
 REST_FRAMEWORK = {
