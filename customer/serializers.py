@@ -86,3 +86,15 @@ class WishListSerializer(serializers.ModelSerializer):
         except IntegrityError:
             raise serializers.ValidationError(f'film with id: {film_id} already exists in the customer\'s wishlist.')
         return wishlist
+
+
+class AddScoreToFilmByCustomerRequestSerializer(serializers.Serializer):
+    score = serializers.IntegerField()
+
+    def validate_score(self, value):
+        """
+        Validate that the score is between 0 and 5.
+        """
+        if value < 0 or value > 5:
+            raise serializers.ValidationError("Score must be between 0 and 5.")
+        return value

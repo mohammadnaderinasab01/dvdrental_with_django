@@ -20,4 +20,7 @@ urlpatterns = [
     path('customer-wishlist/<int:film_id>/', views.WishListViewSet.as_view({
         'delete': 'destroy'
     }), name='delete_customer_wishlist'),
+    path('add-score-to-film-by-customer/<int:film_id>/',
+         views.AddScoreToFilmByCustomerView.as_view(),
+         name='add_score_to_film_by_customer'),
 ]

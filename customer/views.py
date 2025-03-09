@@ -4,20 +4,21 @@ from .models import Address, Customer, WishList
 from payment.models import Rental
 from payment.serializers import RentalSerializer
 from .serializers import AddressSerializer, CustomerAddressUpdateCreateSerializer, \
-    RecommendedFilmsSerializer, WishListSerializer
+    RecommendedFilmsSerializer, WishListSerializer, AddScoreToFilmByCustomerRequestSerializer
 import time
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from payment.models import Payment
 from payment.serializers import PaymentSerializer
 from utils.responses import CustomResponse
-from films.models import Actor, Film, FilmActor
+from films.models import Actor, Film, FilmActor, FilmScore
 from django.db.models import Count, Q, Sum, F, OuterRef, Subquery, IntegerField, FloatField
 from django.db.models.functions import Coalesce
 from django.db import connection
 from utils.filters import DateRangeFilter
 from utils.validators import valid_date_format
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
@@ -280,3 +281,35 @@ class WishListViewSet(viewsets.ModelViewSet):
         except Customer.DoesNotExist:
             return WishList.objects.none()
         return WishList.objects.filter(customer=customer)
+
+
+class AddScoreToFilmByCustomerView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=AddScoreToFilmByCustomerRequestSerializer)
+    def post(self, request, film_id):
+        request_serializer = AddScoreToFilmByCustomerRequestSerializer(data=request.data)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+        score = request_serializer.validated_data.get('score', None)
+        try:
+            customer = request.user.customer
+            film = Film.objects.get(film_id=film_id)
+            if not Rental.objects.filter(inventory__film=film, customer=customer).exists():
+                return CustomResponse.bad_request(f'you haven\'t rented film with id: {film_id} before')
+            FilmScore.objects.get(film=film, customer=customer)
+            return CustomResponse.bad_request(f'you\'ve been scored film with id: {film_id} previously.')
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('customer not found.')
+        except AttributeError:
+            return CustomResponse.not_found('error occurred')
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {film_id} not found.')
+        except FilmScore.DoesNotExist:
+            FilmScore.objects.create(
+                score=score,
+                film=film,
+                customer=customer,
+                last_update=timezone.now()
+            )
+            return CustomResponse.successful_201(f'your score for film with id: {film_id} successfully added.')
