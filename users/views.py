@@ -20,9 +20,7 @@ class LoginView(APIView):
     )
     def post(self, request):
         request_serializer = UserLoginSerializerRequest(data=request.data)
-        print('before')
         if not request_serializer.is_valid():
-            print('in if')
             return CustomResponse.bad_request(request_serializer.errors)
         username = request_serializer.validated_data.get('email', None)
         password = request_serializer.validated_data.get('password', None)
