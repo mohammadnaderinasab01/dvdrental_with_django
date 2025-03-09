@@ -190,3 +190,19 @@ class FilmDeleteView(generics.DestroyAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = FilmSerializer
     queryset = Film.objects.all()
+
+
+class ActorFilmsView(generics.ListAPIView):
+    serializer_class = FilmSerializer
+    lookup_field = 'actor_id'
+
+    def get_queryset(self):
+        actor_id = self.kwargs.get('actor_id')
+        return Film.objects.filter(filmactor__actor__actor_id=actor_id)
+
+    def list(self, request, actor_id, *args, **kwargs):
+        try:
+            Actor.objects.get(actor_id=actor_id)
+        except Actor.DoesNotExist:
+            return CustomResponse.not_found(f'actor with id: {actor_id} not found.')
+        return super().list(request, *args, **kwargs)
