@@ -312,4 +312,27 @@ class AddScoreToFilmByCustomerView(views.APIView):
                 customer=customer,
                 last_update=timezone.now()
             )
-            return CustomResponse.successful_201(f'your score for film with id: {film_id} successfully added.')
+            return CustomResponse.successful_201(result=f'your score for film with id: {film_id} successfully added.')
+
+    @extend_schema(request=AddScoreToFilmByCustomerRequestSerializer)
+    def put(self, request, film_id):
+        request_serializer = AddScoreToFilmByCustomerRequestSerializer(data=request.data)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+        score = request_serializer.validated_data.get('score', None)
+        try:
+            customer = request.user.customer
+            film = Film.objects.get(film_id=film_id)
+            film_score = FilmScore.objects.get(film=film, customer=customer)
+            film_score.score = score
+            film_score.last_update = timezone.now()
+            film_score.save()
+            return CustomResponse.successful_200(result=f'your score for film with id: {film_id} successfully updated.')
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('customer not found.')
+        except AttributeError:
+            return CustomResponse.not_found('error occurred')
+        except Film.DoesNotExist:
+            return CustomResponse.not_found(f'film with id: {film_id} not found.')
+        except FilmScore.DoesNotExist:
+            return CustomResponse.not_found(f'your film_score for film with id: {film_id} not found.')

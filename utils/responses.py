@@ -25,7 +25,10 @@ class CustomResponse:
 
     @staticmethod
     def successful_201(result=None, message=None):
-        return Response({'result': result, 'detail': message}, status=status.HTTP_201_CREATED)
+        response = {'result': result}
+        if message is not None:
+            response['detail'] = message
+        return Response(response, status=status.HTTP_201_CREATED)
 
     @staticmethod
     def successful_202(result=None, message=None):
