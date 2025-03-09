@@ -28,7 +28,7 @@ class AddOrRemoveActorToOrFromFilmRequestSerializer(serializers.Serializer):
     actor_id = serializers.IntegerField()
 
 
-class TopScoreFilmsListSerializer(FilmSerializer):
+class FilmScoreSerializer(FilmSerializer):
     total_film_score = serializers.SerializerMethodField()
 
     def get_total_film_score(self, object):
