@@ -59,7 +59,6 @@ class UserSignupSerializerRequest(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'email', 'password', 'is_customer']
 
 
-class UserLoginSerializerRequest(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['email', 'password']
+class UserLoginSerializerRequest(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+    password = serializers.CharField(max_length=255)
