@@ -18,4 +18,6 @@ urlpatterns = [
         'get': 'list',
     }), name='customer_wishlist'),
     path('customer-wishlist/<int:customer_id>/', views.CustomerWishListView.as_view(), name="customer_wishlist"),
+    path('top-score-films-list/', views.TopScoreFilmsListView.as_view(), name='top_score_films_list'),
+    path('film-score/<int:pk>/', views.FilmScoreView.as_view(), name='film_score'),
 ]

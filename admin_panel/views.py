@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAdminUser
 from customer.models import Customer, Country, WishList
 from customer.serializers import CustomerSerializer, WishListSerializer
 from payment.models import Rental, Payment
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Q, Sum, Avg
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
@@ -11,7 +12,7 @@ from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
 from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer, \
-    AddOrRemoveActorToOrFromFilmRequestSerializer
+    AddOrRemoveActorToOrFromFilmRequestSerializer, TopScoreFilmsListSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 from films.models import Film, Actor, FilmActor
@@ -184,3 +185,24 @@ class CustomerWishListView(generics.ListAPIView):
             return WishList.objects.filter(customer=customer)
         except Customer.DoesNotExist:
             return WishList.objects.none()
+
+
+class TopScoreFilmsListView(generics.ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = TopScoreFilmsListSerializer
+
+    def get_queryset(self):
+        return Film.objects.annotate(total_film_score=Coalesce(
+            Avg('filmscore__score'), 0.0)).order_by('-total_film_score')
+
+
+class FilmScoreView(generics.RetrieveAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = TopScoreFilmsListSerializer
+
+    def get_queryset(self):
+        try:
+            return Film.objects.filter(film_id=self.kwargs.get('pk', None)).annotate(total_film_score=Coalesce(
+                Avg('filmscore__score'), 0.0)).order_by('-total_film_score')
+        except:
+            return Film.objects.none()

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from store.serializers import StoreSerializer
 from customer.serializers import CountrySerializer
+from films.serializers import FilmSerializer
 
 
 class TopPerformingStoresSerializer(StoreSerializer):
@@ -25,3 +26,13 @@ class CountriesHavingMostCustomersSerializer(CountrySerializer):
 
 class AddOrRemoveActorToOrFromFilmRequestSerializer(serializers.Serializer):
     actor_id = serializers.IntegerField()
+
+
+class TopScoreFilmsListSerializer(FilmSerializer):
+    total_film_score = serializers.SerializerMethodField()
+
+    def get_total_film_score(self, object):
+        try:
+            return object.total_film_score
+        except:
+            return None
