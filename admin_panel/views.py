@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAdminUser
 from customer.models import Customer, Country, WishList
 from customer.serializers import CustomerSerializer, WishListSerializer
 from payment.models import Rental, Payment
-from django.db.models import Count, Q, Sum, Avg, Value
+from django.db.models import Count, Q, Sum, Avg, Value, F, Func, FloatField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -12,7 +12,7 @@ from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
 from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer, \
-    AddOrRemoveActorToOrFromFilmRequestSerializer, FilmScoreSerializer
+    AddOrRemoveActorToOrFromFilmRequestSerializer, FilmScoreSerializer, MostRentalDurationAverageCustomersSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 from films.models import Film, Actor, FilmActor
@@ -204,3 +204,19 @@ class FilmScoreView(generics.RetrieveAPIView):
         return Film.objects.annotate(
             total_film_score=Coalesce(Avg('filmscore__score'), Value(0.0))
         )
+
+
+class MostRentalDurationAverageCustomersView(generics.ListAPIView):
+    permission_classes = []
+    serializer_class = MostRentalDurationAverageCustomersSerializer
+
+    def get_queryset(self):
+        return Customer.objects.filter(rental__isnull=False).annotate(
+            rental_duration_average=Avg(
+                Func(
+                    Coalesce(F('rental__return_date'), timezone.now()) - F('rental__rental_date'),
+                    function='EXTRACT',
+                    template="%(function)s(EPOCH FROM %(expressions)s)",
+                    output_field=FloatField()
+                )
+            )).order_by('-rental_duration_average')

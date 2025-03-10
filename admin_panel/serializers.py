@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from store.serializers import StoreSerializer
-from customer.serializers import CountrySerializer
+from customer.serializers import CountrySerializer, CustomerSerializer
 from films.serializers import FilmSerializer
 
 
@@ -34,5 +34,15 @@ class FilmScoreSerializer(FilmSerializer):
     def get_total_film_score(self, object):
         try:
             return object.total_film_score
+        except:
+            return None
+
+
+class MostRentalDurationAverageCustomersSerializer(CustomerSerializer):
+    rental_duration_average = serializers.SerializerMethodField()
+
+    def get_rental_duration_average(self, object):
+        try:
+            return object.rental_duration_average
         except:
             return None
