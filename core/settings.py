@@ -58,10 +58,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
+class CustomPBKDF2PasswordHasher(PBKDF2PasswordHasher):
+    iterations = 260000
+
+
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'core.settings.CustomPBKDF2PasswordHasher',
 ]
-PBKDF2PasswordHasher.iterations = 260000
 
 # djangorestframework configuration
 REST_FRAMEWORK = {
