@@ -101,6 +101,20 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+# cache config
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv('REDIS_URL'),  # Redis server address and database (e.g., 1)
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": os.getenv("REDIS_PASSWORD"),  # If Redis requires a password
+            "CONNECTION_POOL_CLASS": "redis.BlockingConnectionPool",
+            "MAX_CONNECTIONS": os.getenv('REDIS_MAX_CONNECTIONS'),
+        },
+    }
+}
+
 # Celery Configuration
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis as the broker
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis as the result backend
