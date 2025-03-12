@@ -116,8 +116,8 @@ CACHES = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis as the broker
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis as the result backend
+CELERY_BROKER_URL = f'redis://:{os.getenv("REDIS_PASSWORD")}@localhost:6379/0'  # Redis as the broker
+CELERY_RESULT_BACKEND = f'redis://:{os.getenv("REDIS_PASSWORD")}@localhost:6379/0'  # Redis as the result backend
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -133,6 +133,35 @@ CELERY_BEAT_SCHEDULE = {
     'send-activity-email-for-inactive-customers': {
         'task': 'admin_panel.tasks.inactive_customers_activity_email_notifier',
         'schedule': 60 * 60 * 24,  # Run every day (in seconds)
+    },
+}
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'celery_tasks.log',  # Logs will be written to this file
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'admin_panel.tasks': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'customer.tasks': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }
 
