@@ -71,7 +71,7 @@ PASSWORD_HASHERS = [
 REST_FRAMEWORK = {
     # authentication
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
 
     # schema
