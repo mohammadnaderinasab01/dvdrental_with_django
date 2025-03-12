@@ -15,4 +15,5 @@ urlpatterns = [
     path('remove-all-film-inventories-from-store/<int:pk>/',
          views.RemoveAllFilmInventoriesFromStoreView.as_view(),
          name="remove_all_film_inventories_from_store"),
+    path('inventory-statistics/', views.InventoryStatisticsView.as_view(), name='inventory_statistics'),
 ]

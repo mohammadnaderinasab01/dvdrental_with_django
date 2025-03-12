@@ -9,13 +9,14 @@ from films.models import Film, Inventory
 from django.db import transaction
 from .serializers import RentFilmSerializer
 from drf_spectacular.utils import extend_schema
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from drf_spectacular.types import OpenApiTypes
 import time
 from payment.serializers import PaymentSerializer
 from django.core.exceptions import ValidationError
 from films.serializers import InventorySerializer
+from admin_panel.models import SiteConfig
 
 
 class ReturnRentalView(views.APIView):
@@ -215,3 +216,39 @@ class RemoveAllFilmInventoriesFromStoreView(views.APIView):
         inventories.delete()
 
         return CustomResponse.successful_204_no_content()
+
+
+class InventoryStatisticsView(views.APIView):
+    permission_classes = [IsStoreStaff]
+
+    def get(self, request):
+        try:
+            overdue_days = int(SiteConfig.objects.get_config(key='FILM_INVENTORY_OVERDUE_DAYS', default=30))
+        except ValueError:
+            return CustomResponse.server_error('an error occurred')
+
+        try:
+            staff = request.user.staff
+            store_id = staff.store.store_id
+        except Staff.DoesNotExist:
+            return CustomResponse.bad_request('no staff found with your user id.')
+        except Store.DoesNotExist:
+            return CustomResponse.bad_request('no store found with your staff id.')
+
+        annotated_inventories = Inventory.objects.filter(store_id=store_id).annotate(
+            unreturned_count=Count('rental', filter=Q(rental__return_date__isnull=True))
+        )
+
+        results = annotated_inventories.aggregate(
+            all_inventories=Count('inventory_id'),
+            available_inventories=Count('inventory_id', filter=Q(unreturned_count=0)),
+            rented_inventories=Count('inventory_id', filter=~Q(unreturned_count=0)),
+            overdue_inventories=Count(
+                'inventory_id',
+                filter=Q(
+                    rental__return_date__isnull=True,
+                    rental__rental_date__lt=timezone.now() -
+                    timezone.timedelta(overdue_days))),
+        )
+
+        return CustomResponse.successful_200(results)
