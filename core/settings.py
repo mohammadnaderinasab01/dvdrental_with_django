@@ -130,6 +130,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'admin_panel.tasks.send_inventory_rental_overdue_email',
         'schedule': 60 * 60 * 24,  # Run every day (in seconds)
     },
+    'send-activity-email-for-inactive-customers': {
+        'task': 'admin_panel.tasks.inactive_customers_activity_email_notifier',
+        'schedule': 60 * 60 * 24,  # Run every day (in seconds)
+    },
 }
 
 # notifier email Configuration
