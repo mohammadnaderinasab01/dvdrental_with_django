@@ -18,6 +18,7 @@ class StoreViewSet(viewsets.ModelViewSet):
     queryset = Store.objects.all()
     serializer_class = StoreForUnAuthenticatedUserSerializer
     permission_classes = []
+    authentication_classes = []
     http_method_names = ['get']
 
 

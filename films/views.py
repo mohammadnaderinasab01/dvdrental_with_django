@@ -19,6 +19,7 @@ import decimal
 class FilmListView(generics.ListAPIView):
     queryset = Film.objects.all()
     serializer_class = FilmSerializer
+    authentication_classes = []
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['release_year', 'language']
     search_fields = ['title', 'description', 'fulltext', 'special_features']
@@ -35,6 +36,7 @@ class FilmListView(generics.ListAPIView):
 class CategoryListView(generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    authentication_classes = []
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     ordering_fields = ['last_update']
@@ -49,6 +51,7 @@ class CategoryListView(generics.ListAPIView):
 class ActorListView(generics.ListAPIView):
     queryset = Actor.objects.all()
     serializer_class = ActorSerializer
+    authentication_classes = []
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['first_name', 'last_name']
     ordering_fields = ['last_update']
@@ -63,6 +66,7 @@ class ActorListView(generics.ListAPIView):
 class InventoryListView(generics.ListAPIView):
     queryset = Inventory.objects.all()
     serializer_class = InventorySerializer
+    authentication_classes = []
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['film__title', 'film__description', 'film__fulltext', 'film__special_features']
     ordering_fields = ['last_update']
@@ -77,10 +81,12 @@ class InventoryListView(generics.ListAPIView):
 class FilmDetailsView(generics.RetrieveAPIView):
     queryset = Film.objects.all()
     serializer_class = FilmSerializer
+    authentication_classes = []
 
 
 class TopRentedFilmsView(generics.ListAPIView):
     serializer_class = TopRentedFilmsSerializer
+    authentication_classes = []
 
     def get_queryset(self):
         start_time = time.time()
@@ -93,6 +99,7 @@ class TopRentedFilmsView(generics.ListAPIView):
 
 class MostPaidForFilmsView(generics.ListAPIView):
     serializer_class = MostPaidForFilmsSerializer
+    authentication_classes = []
 
     def get_queryset(self):
         return Film.objects.annotate(total_paid_amount=Coalesce(Sum(
@@ -101,6 +108,7 @@ class MostPaidForFilmsView(generics.ListAPIView):
 
 class MostPopularActorsView(generics.ListAPIView):
     serializer_class = MostPopularActorsSerializer
+    authentication_classes = []
 
     def get_queryset(self):
         start_time = time.time()
@@ -112,6 +120,7 @@ class MostPopularActorsView(generics.ListAPIView):
 
 
 class FilmAvailabilityView(views.APIView):
+    authentication_classes = []
 
     @extend_schema(parameters=[
         OpenApiParameter(name="store_id", type=OpenApiTypes.STR)
@@ -138,6 +147,7 @@ class FilmAvailabilityView(views.APIView):
 
 class MostInUsedLanguagesView(generics.ListAPIView):
     serializer_class = MostInUsedLanguagesSerializer
+    authentication_classes = []
 
     def get_queryset(self):
         return Language.objects.annotate(total_films_usage=Count("film")).order_by('-total_films_usage')
@@ -146,6 +156,7 @@ class MostInUsedLanguagesView(generics.ListAPIView):
 class FilmActorsView(generics.ListAPIView):
     serializer_class = ActorSerializer
     pagination_class = PaginationWithCustomDataFormat
+    authentication_classes = []
 
     def get_queryset(self):
         film_id = self.kwargs.get('pk')
@@ -194,6 +205,7 @@ class FilmDeleteView(generics.DestroyAPIView):
 
 class ActorFilmsView(generics.ListAPIView):
     serializer_class = FilmSerializer
+    authentication_classes = []
     lookup_field = 'actor_id'
 
     def get_queryset(self):

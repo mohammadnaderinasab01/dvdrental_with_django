@@ -4,11 +4,13 @@ from .serializers import RentalSerializer
 from rest_framework import filters
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from rest_framework.permissions import IsAdminUser
 
 
 class RentalListView(generics.ListAPIView):
     queryset = Rental.objects.all()
     serializer_class = RentalSerializer
+    permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['customer__first_name', 'customer__last_name', 'customer__email',
                      'inventory__film__title', 'inventory__film__description',
@@ -26,3 +28,4 @@ class RentalListView(generics.ListAPIView):
 class RentalDetailsView(generics.RetrieveAPIView):
     queryset = Rental.objects.all()
     serializer_class = RentalSerializer
+    permission_classes = [IsAdminUser]

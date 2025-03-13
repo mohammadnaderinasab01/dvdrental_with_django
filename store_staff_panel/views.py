@@ -195,6 +195,8 @@ class RemoveInventoryFromStoreView(views.APIView):
 
 
 class RemoveAllFilmInventoriesFromStoreView(views.APIView):
+    permission_classes = [IsStoreStaff]
+
     def post(self, request, pk):
         try:
             store = request.user.staff.store
