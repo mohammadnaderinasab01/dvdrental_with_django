@@ -46,3 +46,13 @@ class MostRentalDurationAverageCustomersSerializer(CustomerSerializer):
             return object.rental_duration_average
         except:
             return None
+
+
+class MostKeptFilmsListSerializer(FilmSerializer):
+    total_rental_duration = serializers.SerializerMethodField()
+
+    def get_total_rental_duration(self, object):
+        try:
+            return object.total_rental_duration
+        except:
+            return None

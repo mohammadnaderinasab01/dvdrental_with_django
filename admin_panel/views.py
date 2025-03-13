@@ -12,7 +12,8 @@ from drf_spectacular.types import OpenApiTypes
 from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
 from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer, \
-    AddOrRemoveActorToOrFromFilmRequestSerializer, FilmScoreSerializer, MostRentalDurationAverageCustomersSerializer
+    AddOrRemoveActorToOrFromFilmRequestSerializer, FilmScoreSerializer, MostRentalDurationAverageCustomersSerializer, \
+    MostKeptFilmsListSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 from films.models import Film, Actor, FilmActor
@@ -221,3 +222,19 @@ class MostRentalDurationAverageCustomersView(generics.ListAPIView):
                     output_field=FloatField()
                 )
             )).order_by('-rental_duration_average')
+
+
+class MostKeptFilmsListView(generics.ListAPIView):
+    serializer_class = MostKeptFilmsListSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Film.objects.annotate(
+            total_rental_duration=Coalesce(Sum(
+                Func(
+                    Coalesce(F('inventory__rental__return_date'), timezone.now()) - F('inventory__rental__rental_date'),
+                    function='EXTRACT',
+                    template="%(function)s(EPOCH FROM %(expressions)s)",
+                    output_field=FloatField()
+                )
+            ), 0.0)).order_by('-total_rental_duration')
