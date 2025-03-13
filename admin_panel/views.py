@@ -42,6 +42,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
 class TopRentingCustomersView(generics.ListAPIView):
     serializer_class = CustomerSerializer
+    permission_classes = [IsAdminUser]
 
     def get_queryset(self):
         return Customer.objects.annotate(rental_count=Count('rental')).order_by('-rental_count')
@@ -207,7 +208,7 @@ class FilmScoreView(generics.RetrieveAPIView):
 
 
 class MostRentalDurationAverageCustomersView(generics.ListAPIView):
-    permission_classes = []
+    permission_classes = [IsAdminUser]
     serializer_class = MostRentalDurationAverageCustomersSerializer
 
     def get_queryset(self):
