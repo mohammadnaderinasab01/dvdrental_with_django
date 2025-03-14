@@ -24,4 +24,5 @@ urlpatterns = [
          views.MostRentalDurationAverageCustomersView.as_view(),
          name='most_rental_duration_average_customers'),
     path('most-kept-films/', views.MostKeptFilmsListView.as_view(), name='most_kept_films'),
+    path('most-wished-films/', views.MostWishedFilmsListView.as_view(), name='most_wished_films'),
 ]

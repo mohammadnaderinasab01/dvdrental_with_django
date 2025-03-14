@@ -56,3 +56,13 @@ class MostKeptFilmsListSerializer(FilmSerializer):
             return object.total_rental_duration
         except:
             return None
+
+
+class MostWishedFilmsListSerializer(FilmSerializer):
+    total_wished_count = serializers.SerializerMethodField()
+
+    def get_total_wished_count(self, object):
+        try:
+            return object.total_wished_count
+        except:
+            return None

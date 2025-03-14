@@ -13,7 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from store.models import Staff, Store
 from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCustomersSerializer, \
     AddOrRemoveActorToOrFromFilmRequestSerializer, FilmScoreSerializer, MostRentalDurationAverageCustomersSerializer, \
-    MostKeptFilmsListSerializer
+    MostKeptFilmsListSerializer, MostWishedFilmsListSerializer
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 from films.models import Film, Actor, FilmActor
@@ -238,3 +238,13 @@ class MostKeptFilmsListView(generics.ListAPIView):
                     output_field=FloatField()
                 )
             ), 0.0)).order_by('-total_rental_duration')
+
+
+class MostWishedFilmsListView(generics.ListAPIView):
+    serializer_class = MostWishedFilmsListSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Film.objects.annotate(
+            total_wished_count=Coalesce(Count('wishlist'), 0)
+        ).order_by('-total_wished_count')
