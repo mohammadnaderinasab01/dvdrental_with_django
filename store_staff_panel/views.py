@@ -190,8 +190,9 @@ class RemoveInventoryFromStoreView(views.APIView):
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 
         try:
-            inventory = Inventory.objects.get(inventory_id=pk, store_id=store.store_id)
-            inventory.delete()
+            with transaction.atomic():
+                inventory = Inventory.objects.select_for_update().get(inventory_id=pk, store_id=store.store_id)
+                inventory.delete()
             return CustomResponse.successful_204_no_content()
         except Inventory.DoesNotExist:
             return CustomResponse.not_found(f'inventory with id: {pk} in store with id: {store.store_id} not found.')
