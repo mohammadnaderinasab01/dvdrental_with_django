@@ -208,18 +208,19 @@ class RemoveAllFilmInventoriesFromStoreView(views.APIView):
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 
-        try:
-            film = Film.objects.get(film_id=pk)
-        except Film.DoesNotExist:
-            return CustomResponse.not_found(f'film with id: {pk} in store with id: {store.store_id} not found.')
+        with transaction.atomic():
+            try:
+                film = Film.objects.select_for_update().get(film_id=pk)
+            except Film.DoesNotExist:
+                return CustomResponse.not_found(f'film with id: {pk} in store with id: {store.store_id} not found.')
 
-        inventories = film.inventory_set.filter(store_id=store.store_id)
+            inventories = film.inventory_set.select_for_update().filter(store_id=store.store_id)
 
-        if not inventories.exists():
-            return CustomResponse.not_found(
-                f'No inventories found for film with id: {pk} in store with id: {store.store_id}.')
+            if not inventories.exists():
+                return CustomResponse.not_found(
+                    f'No inventories found for film with id: {pk} in store with id: {store.store_id}.')
 
-        inventories.delete()
+            inventories.delete()
 
         return CustomResponse.successful_204_no_content()
 
