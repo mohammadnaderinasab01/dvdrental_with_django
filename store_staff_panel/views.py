@@ -163,16 +163,17 @@ class AddFilmInventoryToStoreView(views.APIView):
             return CustomResponse.bad_request(
                 f'staff with id: {request.user.staff.staff_id} does not attend to any store')
 
-        try:
-            film = Film.objects.get(film_id=pk)
-        except Film.DoesNotExist:
-            return CustomResponse.not_found(f'film with id: {pk} not found.')
+        with transaction.atomic():
+            try:
+                film = Film.objects.select_for_update().get(film_id=pk)
+            except Film.DoesNotExist:
+                return CustomResponse.not_found(f'film with id: {pk} not found.')
 
-        inventory = Inventory.objects.create(
-            film=film,
-            store_id=store.store_id,
-            last_update=timezone.now()
-        )
+            inventory = Inventory.objects.create(
+                film=film,
+                store_id=store.store_id,
+                last_update=timezone.now()
+            )
         serializer = InventorySerializer(instance=inventory)
 
         return CustomResponse.successful_201(serializer.data)
