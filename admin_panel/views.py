@@ -17,6 +17,7 @@ from .serializers import TopPerformingStoresSerializer, CountriesHavingMostCusto
 from store.serializers import StaffSerializer
 from utils.responses import CustomResponse
 from films.models import Film, Actor, FilmActor
+from django.db import IntegrityError
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -131,11 +132,17 @@ class AddActorToFilmView(views.APIView):
             actor = Actor.objects.get(actor_id=actor_id)
             if FilmActor.objects.filter(film=film, actor=actor).exists():
                 return CustomResponse.bad_request(f'actor with id: {actor_id} in film with id: {pk} already exists.')
-            FilmActor.objects.create(
-                actor=actor,
-                film=film,
-                last_update=timezone.now()
-            )
+
+            # use TRY/EXCEPT for where race condition occurred, catch the integrity error will occur
+            try:
+                FilmActor.objects.create(
+                    actor=actor,
+                    film=film,
+                    last_update=timezone.now()
+                )
+            except IntegrityError:
+                return CustomResponse.bad_request(f'actor with id: {actor_id} in film with id: {pk} already exists.')
+
             return CustomResponse.successful_200(f'actor with id: {actor_id} successfully added to film with id: {pk}.')
         except Film.DoesNotExist:
             return CustomResponse.not_found(f'film with id: {pk} not found.')
