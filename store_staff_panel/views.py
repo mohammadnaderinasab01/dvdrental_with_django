@@ -17,6 +17,7 @@ from payment.serializers import PaymentSerializer
 from django.core.exceptions import ValidationError
 from films.serializers import InventorySerializer
 from admin_panel.models import SiteConfig
+from django.db import transaction
 
 
 class ReturnRentalView(views.APIView):
@@ -24,11 +25,12 @@ class ReturnRentalView(views.APIView):
 
     def post(self, request, pk):
         try:
-            rental = Rental.objects.get(rental_id=pk)
-            if rental.return_date:
-                return CustomResponse.bad_request(f"you've returned rental with id: {pk} before")
-            rental.return_date = timezone.now()
-            rental.save()
+            with transaction.atomic():
+                rental = Rental.objects.select_for_update().get(rental_id=pk)
+                if rental.return_date:
+                    return CustomResponse.bad_request(f"you've returned rental with id: {pk} before")
+                rental.return_date = timezone.now()
+                rental.save()
             return CustomResponse.successful_200(f"rental with id: {pk} returned successful")
         except Rental.DoesNotExist:
             return CustomResponse.not_found(f"rental with id: {pk} not found.")
