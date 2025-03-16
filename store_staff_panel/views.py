@@ -51,28 +51,28 @@ class RentFilmView(views.APIView):
         try:
             start_time = time.time()
 
-            customer = Customer.objects.get(customer_id=customer_id)
-            staff = Staff.objects.get(user=request.user)
-            film = Film.objects.get(film_id=film_id)
-
-            available_inventories = Inventory.objects.filter(
-                film_id=film_id, store_id=staff.store_id
-            ).filter(
-                Q(rental__isnull=True) | Q(rental__return_date__isnull=False)
-            ).exclude(
-                rental__return_date__isnull=True
-            )
-
-            end_time = time.time()
-            print(f"Query executed in {end_time - start_time:.4f} seconds")
-
-            if not available_inventories.exists():
-                return CustomResponse.not_found(
-                    f"no available inventory found for film with id: {film_id} with access of staff: {staff.staff_id}")
-
-            inventory = available_inventories.first()
-
             with transaction.atomic():
+                customer = Customer.objects.select_for_update().get(customer_id=customer_id)
+                staff = Staff.objects.select_for_update().get(user=request.user)
+                film = Film.objects.select_for_update().get(film_id=film_id)
+
+                available_inventories = Inventory.objects.select_for_update().filter(
+                    film_id=film_id, store_id=staff.store_id
+                ).filter(
+                    Q(rental__isnull=True) | Q(rental__return_date__isnull=False)
+                ).exclude(
+                    rental__return_date__isnull=True
+                )
+
+                end_time = time.time()
+                print(f"Query executed in {end_time - start_time:.4f} seconds")
+
+                if not available_inventories.exists():
+                    return CustomResponse.not_found(
+                        f"no available inventory found for film with id: {film_id} with access of staff: {staff.staff_id}")
+
+                inventory = available_inventories.first()
+
                 created_rental = Rental.objects.create(
                     rental_date=timezone.now(),
                     inventory=inventory,
