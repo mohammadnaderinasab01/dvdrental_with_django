@@ -743,3 +743,8 @@ def warn_about_keyword_deprecation(keyword: str) -> None:
 
 
 __all__ = ["Model", "PolyModel"]
+
+
+# adding models to the databases
+class Query(Model):
+    queries = Field[str](list, required=True)

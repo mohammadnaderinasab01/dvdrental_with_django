@@ -17,7 +17,7 @@ import decimal
 
 
 class FilmListView(generics.ListAPIView):
-    queryset = Film.objects.all()
+    queryset = Film.objects.all().select_related('language')
     serializer_class = FilmSerializer
     authentication_classes = []
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
