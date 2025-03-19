@@ -747,4 +747,4 @@ __all__ = ["Model", "PolyModel"]
 
 # adding models to the databases
 class Query(Model):
-    queries = Field[str](list, required=True)
+    queries = Field[object](list, required=True)
