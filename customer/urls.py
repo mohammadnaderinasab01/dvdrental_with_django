@@ -23,4 +23,7 @@ urlpatterns = [
     path('add-score-to-film-by-customer/<int:film_id>/',
          views.AddScoreToFilmByCustomerView.as_view(),
          name='add_score_to_film_by_customer'),
+    path('customer-non-returned-films/',
+         views.CustomerNonReturnedFilmsView.as_view(),
+         name='customer_non_returned_films'),
 ]

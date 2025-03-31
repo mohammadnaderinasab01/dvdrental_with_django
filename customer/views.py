@@ -19,6 +19,7 @@ from utils.filters import DateRangeFilter
 from utils.validators import valid_date_format
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from films.serializers import FilmSerializer
 
 
 class CustomerAddressView(generics.CreateAPIView, generics.RetrieveAPIView,
@@ -120,6 +121,26 @@ class CustomerRentalView(generics.ListAPIView):
         except ValidationError as e:
             return CustomResponse.bad_request(e)
         return super().get(request, *args, **kwargs)
+
+
+class CustomerNonReturnedFilmsView(generics.ListAPIView):
+    serializer_class = FilmSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        customer = self.request.user.customer
+        return Film.objects.filter(
+            inventory__rental__customer=customer,
+            inventory__rental__return_date__isnull=True
+        ).distinct()
+
+    def list(self, request, *args, **kwargs):
+        try:
+            customer = request.user.customer
+        except Customer.DoesNotExist:
+            return CustomResponse.not_found('customer not found.')
+
+        return super().list(request, *args, **kwargs)
 
 
 class CustomerPaymentViewSet(viewsets.ModelViewSet):
