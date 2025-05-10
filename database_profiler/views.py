@@ -12,6 +12,15 @@ class QueriesView(views.APIView):
         if not request_serializer.is_valid():
             return CustomResponse.bad_request(request_serializer.errors)
 
+        limit = request_serializer.validated_data.get('limit')
+        skip = request_serializer.validated_data.get('skip')
+
+        # Validate inputs
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("Limit must be a positive integer.")
+        if not isinstance(skip, int) or skip < 0:
+            raise ValueError("Skip must be a non-negative integer.")
+
         serializer = QueriesSerializer(
             Query.aggregate([
                 {
@@ -26,6 +35,12 @@ class QueriesView(views.APIView):
                 },
                 {
                     "$sort": {f"queries.0.{request_serializer.validated_data.get('sort_by')}": -1}
+                },
+                {
+                    "$limit": limit
+                },
+                {
+                    "$skip": skip
                 }
             ]), many=True)
         try:
