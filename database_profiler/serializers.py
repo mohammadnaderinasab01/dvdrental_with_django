@@ -13,5 +13,14 @@ class QueriesRequestSerializer(serializers.Serializer):
     skip = serializers.IntegerField(default=0)
 
 
+class MostSlowQueriesRequestSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(default=10)
+    skip = serializers.IntegerField(default=0)
+
+
 class QueriesSerializer(serializers.Serializer):
     queries = serializers.ListField()
+
+
+class MostSlowQueriesSerializer(serializers.Serializer):
+    total_duration = serializers.DecimalField(max_digits=20, decimal_places=20, coerce_to_string=False)
