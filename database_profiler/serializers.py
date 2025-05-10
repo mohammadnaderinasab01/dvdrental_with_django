@@ -9,7 +9,7 @@ class QueriesRequestSerializer(serializers.Serializer):
             "invalid_choice": "Invalid choice. Allowed values are: execution_duration, execution_time, row_affected."
         }
     )
-    limit = serializers.IntegerField(default=1)
+    limit = serializers.IntegerField(default=10)
     skip = serializers.IntegerField(default=0)
 
 
