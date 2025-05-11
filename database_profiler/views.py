@@ -165,26 +165,26 @@ class MostUsedEndpointsView(views.APIView):
         serializer = MostUsedEndpointsSerializer(
             Query.aggregate([
                 {
-                    "$addFields": {
-                        "total_duration": {
-                            "$sum": "$queries.execution_duration"
-                        }
+                    "$group": {
+                        "_id": "$request_path",
+                        "total_usage": {"$sum": 1}
                     }
                 },
                 {
-                    "$sort": {"total_duration": -1}
+                    "$project": {
+                        "_id": 0,
+                        "request_path": "$_id",
+                        "total_usage": 1
+                    }
+                },
+                {
+                    "$sort": {"total_usage": -1}
                 },
                 {
                     "$limit": limit
                 },
                 {
                     "$skip": skip
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "queries": 0
-                    }
                 }
             ]), many=True)
         try:

@@ -28,5 +28,6 @@ class MostSlowQueriesSerializer(QueriesSerializer):
     total_duration = serializers.DecimalField(max_digits=20, decimal_places=20, coerce_to_string=False)
 
 
-class MostUsedEndpointsSerializer(QueriesSerializer):
+class MostUsedEndpointsSerializer(serializers.Serializer):
     total_usage = serializers.IntegerField()
+    request_path = serializers.CharField()
