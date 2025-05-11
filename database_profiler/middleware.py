@@ -5,13 +5,16 @@ from django.utils import timezone
 from utils.helpers import convert_uuid_to_string
 import sqlglot
 from sqlglot import exp
+import json
 
 
 class DatabaseMonitoringMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         self.queries = []
-        self._current_path = None
+        self.request_path = None
+        self.response_status_code = None
+        self.response_data = None
 
     def clean_sql(self, sql, params):
         """
@@ -53,17 +56,14 @@ class DatabaseMonitoringMiddleware:
 
         # Start timing
         start_time = time.time()
-        # print('context: ', type(context))
         result = execute(sql, params, many, context)
+
         clean_sql_query = self.clean_sql(sql, processed_params)
         # Extract table names from the query
         tables = self.extract_tables(clean_sql_query)
 
         # Calculate execution time
         execution_duration = time.time() - start_time
-
-        # print("dir(context['cursor']): ", dir(context['connection']))
-        # print("vars(context['cursor']): ", vars(context['connection']))
 
         # Capture the SQL query and its parameters
         self.queries.append({
@@ -76,35 +76,51 @@ class DatabaseMonitoringMiddleware:
             'rows_affected': context['cursor'].rowcount,
             'db_vendor': connection.vendor,
             'needs_rollback': context['connection'].needs_rollback,
-            'request_path': self._current_path,
             'tables': tables,
-            # 'db_settings': context['connection'].settings_dict,
-            # 'cursor': context['cursor']
         })
         return result
 
     def __call__(self, request):
-        self._current_path = request.path
+        self.request_path = request.path
         # Wrap the database execution to capture queries
         with connection.execute_wrapper(self._capture_queries):
             response = self.get_response(request)
+            try:
+                self.response_data = response.data
+                json.dumps(self.response_data)  # Ensure it’s serializable
+            except (TypeError, ValueError):
+                self.response_data = None
+            self.response_status_code = response.status_code
 
         # After the view is called
-        # queries = connection.queries
-        # print('self.queries: ', self.queries)
-        # print('queries: ', queries)
+        self.save_queries()
+        return response
+
+    def process_exception(self, request, exception):
+        """
+        Handle exceptions and save queries before re-raising the exception.
+        """
+        # Capture queries when an exception occurs
+        self.save_queries()
+        # Re-raise the exception to let Django handle it further
+        raise exception
+
+    def save_queries(self):
+        """
+        Save captured queries to the database.
+        """
         try:
-            # Query.create(queries=[{
-            #     "query": query.get('sql'),
-            #     "params": query.get('params'),
-            #     "execution_time": query.get('execution_time'),
-            #     "execution_duration": query.get('execution_duration'),
-            # } for query in self.queries])
-            Query.create(queries=[query for query in self.queries])
-            self.queries = []
-            self._current_path = None
+            Query.create(
+                queries=[query for query in self.queries],
+                request_path=self.request_path,
+                response_status_code=self.response_status_code,
+                response_data=self.response_data
+            )
         except Exception as e:
             print(str(e))
-        # print(f"Executed SQL Query: {query['sql']}")
-
-        return response
+        finally:
+            # Clear the captured queries and reset state
+            self.queries = []
+            self.request_path = None
+            self.response_status_code = None
+            self.response_data = None

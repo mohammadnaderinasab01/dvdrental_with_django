@@ -748,3 +748,6 @@ __all__ = ["Model", "PolyModel"]
 # adding models to the databases
 class Query(Model):
     queries = Field[object](list, required=True)
+    request_path = Field[str](str, required=True)
+    response_status_code = Field[int](int, required=True)
+    response_data = Field[Dict[str, Any]](default=None, description="API response data")
