@@ -6,6 +6,7 @@ from utils.helpers import convert_uuid_to_string
 import sqlglot
 from sqlglot import exp
 import json
+from datetime import datetime as dt
 
 
 class DatabaseMonitoringMiddleware:
@@ -13,6 +14,7 @@ class DatabaseMonitoringMiddleware:
         self.get_response = get_response
         self.queries = []
         self.request_path = None
+        self.request_execution_datetime = None
         self.response_status_code = None
         self.response_data = None
 
@@ -82,6 +84,7 @@ class DatabaseMonitoringMiddleware:
 
     def __call__(self, request):
         self.request_path = request.path
+        self.request_execution_datetime = dt.now()
         # Wrap the database execution to capture queries
         with connection.execute_wrapper(self._capture_queries):
             response = self.get_response(request)
@@ -113,6 +116,7 @@ class DatabaseMonitoringMiddleware:
             Query.create(
                 queries=[query for query in self.queries],
                 request_path=self.request_path,
+                request_execution_datetime=self.request_execution_datetime,
                 response_status_code=self.response_status_code,
                 response_data=self.response_data
             )
@@ -122,5 +126,6 @@ class DatabaseMonitoringMiddleware:
             # Clear the captured queries and reset state
             self.queries = []
             self.request_path = None
+            self.request_execution_datetime = None
             self.response_status_code = None
             self.response_data = None

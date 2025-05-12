@@ -19,6 +19,8 @@ class QueriesView(views.APIView):
 
         limit = request_serializer.validated_data.get('limit')
         skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -26,29 +28,42 @@ class QueriesView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = QueriesSerializer(
-            Query.aggregate([
-                {
-                    "$set": {
-                        "queries": {
-                            "$sortArray": {
-                                "input": "$queries",
-                                "sortBy": {request_serializer.validated_data.get('sort_by'): -1}
+        try:
+            serializer = QueriesSerializer(
+                Query.aggregate([
+                    {
+                        "$match": {
+                            "$and": [
+                                {
+                                    "request_execution_datetime": {"$gte": from_date}
+                                },
+                                {
+                                    "request_execution_datetime": {"$lte": to_date}
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "$set": {
+                            "queries": {
+                                "$sortArray": {
+                                    "input": "$queries",
+                                    "sortBy": {request_serializer.validated_data.get('sort_by') if request_serializer.validated_data.get('sort_by') is not None else 'execution_duration': -1}
+                                }
                             }
                         }
+                    },
+                    {
+                        "$sort": {f"queries.0.{request_serializer.validated_data.get('sort_by') if request_serializer.validated_data.get('sort_by') != None else 'execution_duration'}": -1}
+                    },
+                    {
+                        "$limit": limit
+                    },
+                    {
+                        "$skip": skip
                     }
-                },
-                {
-                    "$sort": {f"queries.0.{request_serializer.validated_data.get('sort_by')}": -1}
-                },
-                {
-                    "$limit": limit
-                },
-                {
-                    "$skip": skip
-                }
-            ]), many=True)
-        try:
+                ]), many=True)
+
             return CustomResponse.successful_200(serializer.data)
         except Exception as e:
             print('e: ', str(e))

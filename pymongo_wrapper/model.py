@@ -30,6 +30,8 @@ class UserAccount(Model):
         self.save()
 
 """
+from datetime import datetime
+
 import pymongo_wrapper
 import inspect
 import logging
@@ -749,5 +751,6 @@ __all__ = ["Model", "PolyModel"]
 class Query(Model):
     queries = Field[object](list, required=True)
     request_path = Field[str](str, required=True)
+    request_execution_datetime = Field(datetime, required=True)
     response_status_code = Field[int](int, required=True)
     response_data = Field[Dict[str, Any]](default=None, description="API response data")
