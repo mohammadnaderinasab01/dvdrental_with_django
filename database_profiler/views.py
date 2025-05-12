@@ -98,6 +98,11 @@ class SlowQueriesView(views.APIView):
                             },
                             {
                                 "request_execution_datetime": {"$lte": to_date}
+                            },
+                            {
+                                "total_duration": {
+                                    "$gte": float(os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))
+                                }
                             }
                         ]
                     }
@@ -117,13 +122,6 @@ class SlowQueriesView(views.APIView):
                 },
                 {
                     "$skip": skip
-                },
-                {
-                    "$match": {
-                        "total_duration": {
-                            "$gte": float(os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))
-                        }
-                    }
                 }
             ]), many=True)
         try:
