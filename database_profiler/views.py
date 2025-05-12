@@ -79,6 +79,8 @@ class SlowQueriesView(views.APIView):
 
         limit = request_serializer.validated_data.get('limit')
         skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -88,6 +90,18 @@ class SlowQueriesView(views.APIView):
 
         serializer = SlowQueriesSerializer(
             Query.aggregate([
+                {
+                    "$match": {
+                        "$and": [
+                            {
+                                "request_execution_datetime": {"$gte": from_date}
+                            },
+                            {
+                                "request_execution_datetime": {"$lte": to_date}
+                            }
+                        ]
+                    }
+                },
                 {
                     "$addFields": {
                         "total_duration": {
@@ -128,6 +142,8 @@ class MostSlowQueriesView(views.APIView):
 
         limit = request_serializer.validated_data.get('limit')
         skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -137,6 +153,18 @@ class MostSlowQueriesView(views.APIView):
 
         serializer = MostSlowQueriesSerializer(
             Query.aggregate([
+                {
+                    "$match": {
+                        "$and": [
+                            {
+                                "request_execution_datetime": {"$gte": from_date}
+                            },
+                            {
+                                "request_execution_datetime": {"$lte": to_date}
+                            }
+                        ]
+                    }
+                },
                 {
                     "$addFields": {
                         "total_duration": {
@@ -170,6 +198,8 @@ class MostUsedEndpointsView(views.APIView):
 
         limit = request_serializer.validated_data.get('limit')
         skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -179,6 +209,18 @@ class MostUsedEndpointsView(views.APIView):
 
         serializer = MostUsedEndpointsSerializer(
             Query.aggregate([
+                {
+                    "$match": {
+                        "$and": [
+                            {
+                                "request_execution_datetime": {"$gte": from_date}
+                            },
+                            {
+                                "request_execution_datetime": {"$lte": to_date}
+                            }
+                        ]
+                    }
+                },
                 {
                     "$group": {
                         "_id": "$request_path",
@@ -218,6 +260,8 @@ class MostUsedTablesView(views.APIView):
 
         limit = request_serializer.validated_data.get('limit')
         skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -228,6 +272,18 @@ class MostUsedTablesView(views.APIView):
         serializer = MostUsedTablesSerializer(
             Query.aggregate(
                 [
+                    {
+                        "$match": {
+                            "$and": [
+                                {
+                                    "request_execution_datetime": {"$gte": from_date}
+                                },
+                                {
+                                    "request_execution_datetime": {"$lte": to_date}
+                                }
+                            ]
+                        }
+                    },
                     {
                         "$unwind": "$queries"
                     },
