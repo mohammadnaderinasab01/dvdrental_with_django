@@ -2,7 +2,7 @@ from rest_framework import views
 from utils.responses import CustomResponse
 from pymongo_wrapper.model import Query
 from .serializers import QueriesSerializer, QueriesRequestSerializer, QueriesRequestBaseSerializer, \
-    MostSlowQueriesSerializer, SlowQueriesSerializer, MostUsedEndpointsSerializer
+    MostSlowQueriesSerializer, SlowQueriesSerializer, MostUsedEndpointsSerializer, MostUsedTablesSerializer
 from drf_spectacular.utils import extend_schema
 import os
 from dotenv import load_dotenv
@@ -187,6 +187,61 @@ class MostUsedEndpointsView(views.APIView):
                     "$skip": skip
                 }
             ]), many=True)
+        try:
+            return CustomResponse.successful_200(serializer.data)
+        except Exception as e:
+            print('e: ', str(e))
+            return CustomResponse.server_error('')
+
+
+class MostUsedTablesView(views.APIView):
+    @extend_schema(parameters=[QueriesRequestBaseSerializer])
+    def get(self, request):
+        request_serializer = QueriesRequestBaseSerializer(data=request.query_params)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+
+        limit = request_serializer.validated_data.get('limit')
+        skip = request_serializer.validated_data.get('skip')
+
+        # Validate inputs
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("Limit must be a positive integer.")
+        if not isinstance(skip, int) or skip < 0:
+            raise ValueError("Skip must be a non-negative integer.")
+
+        serializer = MostUsedTablesSerializer(
+            Query.aggregate(
+                [
+                    {
+                        "$unwind": "$queries"
+                    },
+                    {
+                        "$unwind": "$queries.tables"
+                    },
+                    {
+                        "$group": {
+                            "_id": "$queries.tables", "total_usage": {"$sum": 1}
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "table_name": "$_id",
+                            "total_usage": 1
+                        }
+                    },
+                    {
+                        "$sort": {"total_usage": -1}
+                    },
+                    {
+                        "$limit": limit
+                    },
+                    {
+                        "$skip": skip
+                    }
+                ]
+            ), many=True)
         try:
             return CustomResponse.successful_200(serializer.data)
         except Exception as e:

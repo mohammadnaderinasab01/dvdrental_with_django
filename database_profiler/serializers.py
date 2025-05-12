@@ -18,6 +18,9 @@ class QueriesRequestSerializer(QueriesRequestBaseSerializer):
 
 class QueriesSerializer(serializers.Serializer):
     queries = serializers.ListField()
+    request_path = serializers.CharField()
+    response_status_code = serializers.IntegerField()
+    response_data = serializers.JSONField()
 
 
 class SlowQueriesSerializer(QueriesSerializer):
@@ -31,3 +34,8 @@ class MostSlowQueriesSerializer(QueriesSerializer):
 class MostUsedEndpointsSerializer(serializers.Serializer):
     total_usage = serializers.IntegerField()
     request_path = serializers.CharField()
+
+
+class MostUsedTablesSerializer(serializers.Serializer):
+    total_usage = serializers.IntegerField()
+    table_name = serializers.CharField()
