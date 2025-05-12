@@ -174,7 +174,7 @@ class RemoveActorFromFilmView(views.APIView):
 
 
 class WishListViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = WishList.objects.all()
+    queryset = WishList.objects.all().select_related('customer', 'customer__user', 'film')
     permission_classes = [IsAdminUser]
     serializer_class = WishListSerializer
 
