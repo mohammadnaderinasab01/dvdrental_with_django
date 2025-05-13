@@ -754,3 +754,5 @@ class Query(Model):
     request_execution_datetime = Field(datetime, required=True)
     response_status_code = Field[int](int, required=True)
     response_data = Field[Dict[str, Any]](default=None, description="API response data")
+    is_n_plus_one = Field[bool](bool, default=False)
+    n_plus_one_suggestion = Field[str](str, default=None)
