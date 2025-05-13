@@ -25,6 +25,8 @@ class QueriesSerializer(serializers.Serializer):
     request_execution_datetime = serializers.DateTimeField()
     response_status_code = serializers.IntegerField()
     response_data = serializers.JSONField()
+    is_n_plus_one = serializers.BooleanField()
+    n_plus_one_suggestion = serializers.CharField()
 
 
 class SlowQueriesSerializer(QueriesSerializer):
