@@ -105,14 +105,17 @@ class DatabaseMonitoringMiddleware:
         for key, indices in query_groups.items():
             if len(indices) > 1:  # Repeated queries
                 tables = key[1]
-                if len(tables) == 1:
+                if len(tables) == 1:  # Single-table queries
+                    related_table = tables[0]
                     for other_query in queries:
+                        if other_query['sql'] == queries[indices[0]]['sql']:
+                            continue  # Skip same query
                         other_tables = other_query['tables']
-                        if other_tables != tables and len(other_tables) == 1:
-                            field_name = self.is_foreign_key_relationship(other_tables[0], tables[0])
+                        for parent_table in other_tables:
+                            field_name = self.is_foreign_key_relationship(parent_table, related_table)
                             if field_name:
                                 return True, f"Use select_related('{field_name}')"
-                            field_name = self.is_many_to_many_or_reverse_fk(other_tables[0], tables[0])
+                            field_name = self.is_many_to_many_or_reverse_fk(parent_table, related_table)
                             if field_name:
                                 return True, f"Use prefetch_related('{field_name}')"
         return False, None
@@ -121,18 +124,12 @@ class DatabaseMonitoringMiddleware:
         # Preprocess params to handle UUIDs
         processed_params = tuple(convert_uuid_to_string(param) for param in params)
         execution_time = timezone.now()
-
-        # Start timing
-        start_time = time.time()
+        start_time = time.perf_counter()
         result = execute(sql, params, many, context)
         clean_sql_query = self.clean_sql(sql, processed_params)
         # Extract table names from the query
         tables = self.extract_tables(clean_sql_query)
-
-        # Calculate execution time
-        execution_duration = time.time() - start_time
-
-        # Capture the SQL query and its parameters
+        execution_duration = time.perf_counter() - start_time
         self.queries.append({
             'sql': sql,
             'params': processed_params,
