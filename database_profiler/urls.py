@@ -7,4 +7,7 @@ urlpatterns = [
     path('most-slow-queries/', views.MostSlowQueriesView.as_view(), name='database_profiler__most_slow_queries'),
     path('most-used-endpoints/', views.MostUsedEndpointsView.as_view(), name='database_profiler__most_used_endpoints'),
     path('most-used-tables/', views.MostUsedTablesView.as_view(), name='database_profiler__most_used_tables'),
+    path('select-or-prefetch-related-potential-candidate-endpoints/',
+         views.SelectOrPrefetchRelatedPotentialCandidateEndpointsView.as_view(),
+         name='database_profiler__select_or_prefetch_related_potential_candidate_endpoints'),
 ]

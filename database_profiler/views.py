@@ -304,13 +304,58 @@ class MostUsedTablesView(views.APIView):
                     },
                     {
                         "$sort": {"total_usage": -1}
+                    }
+                ]
+            ), many=True)
+        try:
+            return CustomResponse.successful_200(serializer.data)
+        except Exception as e:
+            print('e: ', str(e))
+            return CustomResponse.server_error('')
+
+
+class SelectOrPrefetchRelatedPotentialCandidateEndpointsView(views.APIView):
+    @extend_schema(parameters=[QueriesRequestBaseSerializer])
+    def get(self, request):
+        request_serializer = QueriesRequestBaseSerializer(data=request.query_params)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+
+        limit = request_serializer.validated_data.get('limit')
+        skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
+
+        # Validate inputs
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("Limit must be a positive integer.")
+        if not isinstance(skip, int) or skip < 0:
+            raise ValueError("Skip must be a non-negative integer.")
+
+        serializer = QueriesSerializer(
+            Query.aggregate(
+                [
+                    {
+                        "$match": {
+                            "$and": [
+                                {
+                                    "request_execution_datetime": {"$gte": from_date}
+                                },
+                                {
+                                    "request_execution_datetime": {"$lte": to_date}
+                                },
+                                {
+                                    "is_n_plus_one": True
+                                }
+                            ]
+                        }
                     },
                     {
                         "$limit": limit
                     },
                     {
                         "$skip": skip
-                    }
+                    },
                 ]
             ), many=True)
         try:
