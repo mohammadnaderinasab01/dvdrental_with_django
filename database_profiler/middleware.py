@@ -7,6 +7,7 @@ import sqlglot
 from sqlglot import exp
 import json
 from datetime import datetime as dt
+from django.apps import apps
 
 
 class DatabaseMonitoringMiddleware:
@@ -43,23 +44,87 @@ class DatabaseMonitoringMiddleware:
 
             # Find all table references
             for table in parsed.find_all(exp.Table):
-                # Get the table name (handles schema-qualified tables)
-                table_name = table.name  # e.g., "user"
+                table_name = table.name
                 tables.add(table_name)
         except Exception as e:
             print(f"Error parsing SQL: {e}")
         return list(tables)
 
+    def get_model_for_table(self, table_name):
+        """
+        Find the Django model associated with a table name.
+        """
+        for model in apps.get_models():
+            if model._meta.db_table == table_name:
+                return model
+        return None
+
+    def is_foreign_key_relationship(self, parent_table, related_table):
+        """
+        Check if there's a ForeignKey or OneToOneField from parent_table to related_table.
+        """
+        parent_model = self.get_model_for_table(parent_table)
+        if not parent_model:
+            return None
+        for field in parent_model._meta.get_fields():
+            if field.is_relation and (field.one_to_one or field.many_to_one):
+                if field.related_model._meta.db_table == related_table:
+                    return field.name
+        return None
+
+    def is_many_to_many_or_reverse_fk(self, parent_table, related_table):
+        """
+        Check if there's a ManyToManyField or reverse ForeignKey from parent_table to related_table.
+        """
+        parent_model = self.get_model_for_table(parent_table)
+        related_model = self.get_model_for_table(related_table)
+        if not parent_model or not related_model:
+            return None
+        for field in parent_model._meta.get_fields():
+            if field.many_to_many and field.related_model._meta.db_table == related_table:
+                return field.name
+            if field.is_relation and field.one_to_many and field.related_model._meta.db_table == related_table:
+                return field.name
+        return None
+
+    def detect_n_plus_one(self, queries):
+        """
+        Detect N+1 query patterns and suggest select_related or prefetch_related.
+        Returns (is_n_plus_one, suggestion).
+        """
+        query_groups = {}
+        for i, query in enumerate(queries):
+            sql = query['sql']
+            if not sql.strip().upper().startswith('SELECT'):
+                continue
+            tables = tuple(query['tables'])
+            normalized_sql = self.clean_sql(sql, query['params'])
+            key = (normalized_sql, tables)
+            query_groups.setdefault(key, []).append(i)
+
+        for key, indices in query_groups.items():
+            if len(indices) > 1:  # Repeated queries
+                tables = key[1]
+                if len(tables) == 1:
+                    for other_query in queries:
+                        other_tables = other_query['tables']
+                        if other_tables != tables and len(other_tables) == 1:
+                            field_name = self.is_foreign_key_relationship(other_tables[0], tables[0])
+                            if field_name:
+                                return True, f"Use select_related('{field_name}')"
+                            field_name = self.is_many_to_many_or_reverse_fk(other_tables[0], tables[0])
+                            if field_name:
+                                return True, f"Use prefetch_related('{field_name}')"
+        return False, None
+
     def _capture_queries(self, execute, sql, params, many, context):
         # Preprocess params to handle UUIDs
         processed_params = tuple(convert_uuid_to_string(param) for param in params)
-
         execution_time = timezone.now()
 
         # Start timing
         start_time = time.time()
         result = execute(sql, params, many, context)
-
         clean_sql_query = self.clean_sql(sql, processed_params)
         # Extract table names from the query
         tables = self.extract_tables(clean_sql_query)
@@ -78,7 +143,7 @@ class DatabaseMonitoringMiddleware:
             'rows_affected': context['cursor'].rowcount,
             'db_vendor': connection.vendor,
             'needs_rollback': context['connection'].needs_rollback,
-            'tables': tables,
+            'tables': tables
         })
         return result
 
@@ -90,7 +155,7 @@ class DatabaseMonitoringMiddleware:
             response = self.get_response(request)
             try:
                 self.response_data = response.data
-                json.dumps(self.response_data)  # Ensure it’s serializable
+                json.dumps(self.response_data)
             except (TypeError, ValueError):
                 self.response_data = None
             self.response_status_code = response.status_code
@@ -113,12 +178,15 @@ class DatabaseMonitoringMiddleware:
         Save captured queries to the database.
         """
         try:
+            is_n_plus_one, n_plus_one_suggestion = self.detect_n_plus_one(self.queries)
             Query.create(
                 queries=[query for query in self.queries],
                 request_path=self.request_path,
                 request_execution_datetime=self.request_execution_datetime,
                 response_status_code=self.response_status_code,
-                response_data=self.response_data
+                response_data=self.response_data,
+                is_n_plus_one=is_n_plus_one,
+                n_plus_one_suggestion=n_plus_one_suggestion
             )
         except Exception as e:
             print(str(e))
