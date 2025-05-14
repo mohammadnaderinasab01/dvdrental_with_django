@@ -8,6 +8,16 @@ class QueriesRequestBaseSerializer(serializers.Serializer):
     from_date = serializers.DateTimeField(default=dt(1900, 1, 1))
     to_date = serializers.DateTimeField(default=dt.now())
 
+    def validate_limit(self, value):
+        if not isinstance(value, int) or value <= 0:
+            raise serializers.ValidationError("Limit must be a positive integer.")
+        return value
+
+    def validate_skip(self, value):
+        if not isinstance(value, int) or value < 0:
+            raise serializers.ValidationError("Skip must be a non-negative integer.")
+        return value
+
 
 class QueriesRequestSerializer(QueriesRequestBaseSerializer):
     sort_by = serializers.ChoiceField(

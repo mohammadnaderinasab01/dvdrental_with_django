@@ -23,12 +23,6 @@ class QueriesView(views.APIView):
         to_date = request_serializer.validated_data.get('to_date')
         sort_by = request_serializer.validated_data.get('sort_by') or 'execution_duration'
 
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
-
         result = list(
             Query.aggregate([
                 {
@@ -67,10 +61,7 @@ class QueriesView(views.APIView):
 
         try:
             serializer = QueriesSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
@@ -89,12 +80,6 @@ class SlowQueriesView(views.APIView):
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
 
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
-
         result = list(
             Query.aggregate([
                 {
@@ -108,13 +93,16 @@ class SlowQueriesView(views.APIView):
                     }
                 },
                 {
+                    "$match": {
+                        "total_duration": {"$gte": float(os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))}
+                    }
+                },
+                {
                     "$facet": {
                         "results": [
                             {"$sort": {"total_duration": -1}},
                             {"$skip": skip},
-                            {"$limit": limit},
-                            {"$match": {"total_duration": {"$gte": float(
-                                os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))}}}
+                            {"$limit": limit}
                         ],
                         "count": [{"$count": "total"}]
                     }
@@ -130,10 +118,7 @@ class SlowQueriesView(views.APIView):
 
         try:
             serializer = SlowQueriesSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
@@ -151,12 +136,6 @@ class MostSlowQueriesView(views.APIView):
         skip = request_serializer.validated_data.get('skip')
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
-
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
 
         result = list(
             Query.aggregate([
@@ -191,10 +170,7 @@ class MostSlowQueriesView(views.APIView):
 
         try:
             serializer = MostSlowQueriesSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
@@ -213,12 +189,6 @@ class MostUsedEndpointsView(views.APIView):
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
 
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
-
         result = list(
             Query.aggregate([
                 {
@@ -233,6 +203,13 @@ class MostUsedEndpointsView(views.APIView):
                     }
                 },
                 {
+                    "$project": {
+                        "_id": 0,
+                        "request_path": "$_id",
+                        "total_usage": 1
+                    }
+                },
+                {
                     "$facet": {
                         "results": [
                             {"$sort": {"total_usage": -1}},
@@ -244,11 +221,7 @@ class MostUsedEndpointsView(views.APIView):
                 },
                 {
                     "$project": {
-                        "results": {
-                            "_id": 0,
-                            "request_path": "$_id",
-                            "total_usage": 1
-                        },
+                        "results": 1,
                         "count": {"$arrayElemAt": ["$count.total", 0]}
                     }
                 }
@@ -257,10 +230,7 @@ class MostUsedEndpointsView(views.APIView):
 
         try:
             serializer = MostUsedEndpointsSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
@@ -279,12 +249,6 @@ class MostUsedTablesView(views.APIView):
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
 
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
-
         result = list(
             Query.aggregate([
                 {
@@ -301,6 +265,13 @@ class MostUsedTablesView(views.APIView):
                     }
                 },
                 {
+                    "$project": {
+                        "_id": 0,
+                        "table_name": "$_id",
+                        "total_usage": 1
+                    }
+                },
+                {
                     "$facet": {
                         "results": [
                             {"$sort": {"total_usage": -1}},
@@ -312,11 +283,7 @@ class MostUsedTablesView(views.APIView):
                 },
                 {
                     "$project": {
-                        "results": {
-                            "_id": 0,
-                            "table_name": "$_id",
-                            "total_usage": 1
-                        },
+                        "results": 1,
                         "count": {"$arrayElemAt": ["$count.total", 0]}
                     }
                 }
@@ -325,10 +292,7 @@ class MostUsedTablesView(views.APIView):
 
         try:
             serializer = MostUsedTablesSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
@@ -347,47 +311,35 @@ class SelectOrPrefetchRelatedPotentialCandidateEndpointsView(views.APIView):
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
 
-        # Validate inputs
-        if not isinstance(limit, int) or limit <= 0:
-            raise ValueError("Limit must be a positive integer.")
-        if not isinstance(skip, int) or skip < 0:
-            raise ValueError("Skip must be a non-negative integer.")
-
         result = list(
-            Query.aggregate(
-                [
-                    {
-                        "$match": {
-                            "request_execution_datetime": {"$gte": from_date, "$lte": to_date},
-                            "is_n_plus_one": True
-                        }
-                    },
-                    {
-                        "$facet": {
-                            "results": [
-                                {"$skip": skip},
-                                {"$limit": limit}
-                            ],
-                            "count": [{"$count": "total"}]
-                        }
-                    },
-                    {
-                        "$project": {
-                            "results": 1,
-                            "count": {"$arrayElemAt": ["$count.total", 0]}
-                        }
+            Query.aggregate([
+                {
+                    "$match": {
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date},
+                        "is_n_plus_one": True
                     }
-                ]
-            )
+                },
+                {
+                    "$facet": {
+                        "results": [
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
+                },
+                {
+                    "$project": {
+                        "results": 1,
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
+                    }
+                }
+            ])
         )[0]
 
         try:
-            # Extract count and results
             serializer = QueriesSerializer(result["results"], many=True)
-            response_data = {
-                "count": result["count"],
-                "results": serializer.data
-            }
+            response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
