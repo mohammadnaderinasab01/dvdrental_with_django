@@ -21,6 +21,7 @@ class QueriesView(views.APIView):
         skip = request_serializer.validated_data.get('skip')
         from_date = request_serializer.validated_data.get('from_date')
         to_date = request_serializer.validated_data.get('to_date')
+        sort_by = request_serializer.validated_data.get('sort_by') or 'execution_duration'
 
         # Validate inputs
         if not isinstance(limit, int) or limit <= 0:
@@ -28,43 +29,49 @@ class QueriesView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        try:
-            serializer = QueriesSerializer(
-                Query.aggregate([
-                    {
-                        "$match": {
-                            "$and": [
-                                {
-                                    "request_execution_datetime": {"$gte": from_date}
-                                },
-                                {
-                                    "request_execution_datetime": {"$lte": to_date}
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "$set": {
-                            "queries": {
-                                "$sortArray": {
-                                    "input": "$queries",
-                                    "sortBy": {request_serializer.validated_data.get('sort_by') if request_serializer.validated_data.get('sort_by') is not None else 'execution_duration': -1}
-                                }
+        result = list(
+            Query.aggregate([
+                {
+                    "$match": {
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date}
+                    }
+                },
+                {
+                    "$set": {
+                        "queries": {
+                            "$sortArray": {
+                                "input": "$queries",
+                                "sortBy": {sort_by: -1}
                             }
                         }
-                    },
-                    {
-                        "$sort": {f"queries.0.{request_serializer.validated_data.get('sort_by') if request_serializer.validated_data.get('sort_by') != None else 'execution_duration'}": -1}
-                    },
-                    {
-                        "$limit": limit
-                    },
-                    {
-                        "$skip": skip
                     }
-                ]), many=True)
+                },
+                {
+                    "$facet": {
+                        "results": [
+                            {"$sort": {f"queries.0.{sort_by}": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
+                },
+                {
+                    "$project": {
+                        "results": 1,
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
+                    }
+                }
+            ])
+        )[0]
 
-            return CustomResponse.successful_200(serializer.data)
+        try:
+            serializer = QueriesSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
@@ -88,46 +95,46 @@ class SlowQueriesView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = SlowQueriesSerializer(
+        result = list(
             Query.aggregate([
                 {
                     "$match": {
-                        "$and": [
-                            {
-                                "request_execution_datetime": {"$gte": from_date}
-                            },
-                            {
-                                "request_execution_datetime": {"$lte": to_date}
-                            }
-                        ]
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date}
                     }
                 },
                 {
                     "$addFields": {
-                        "total_duration": {
-                            "$sum": "$queries.execution_duration"
-                        }
+                        "total_duration": {"$sum": "$queries.execution_duration"}
                     }
                 },
                 {
-                    "$sort": {"total_duration": -1}
+                    "$facet": {
+                        "results": [
+                            {"$sort": {"total_duration": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit},
+                            {"$match": {"total_duration": {"$gte": float(
+                                os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))}}}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
                 },
                 {
-                    "$limit": limit
-                },
-                {
-                    "$skip": skip
-                },
-                {
-                    "$match": {
-                        "total_duration": {
-                            "$gte": float(os.getenv('SLOW_QUERY_DURATION_THRESHOLD_SECONDS'))
-                        }
+                    "$project": {
+                        "results": 1,
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
                     }
                 }
-            ]), many=True)
+            ])
+        )[0]
+
         try:
-            return CustomResponse.successful_200(serializer.data)
+            serializer = SlowQueriesSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
@@ -151,39 +158,44 @@ class MostSlowQueriesView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = MostSlowQueriesSerializer(
+        result = list(
             Query.aggregate([
                 {
                     "$match": {
-                        "$and": [
-                            {
-                                "request_execution_datetime": {"$gte": from_date}
-                            },
-                            {
-                                "request_execution_datetime": {"$lte": to_date}
-                            }
-                        ]
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date}
                     }
                 },
                 {
                     "$addFields": {
-                        "total_duration": {
-                            "$sum": "$queries.execution_duration"
-                        }
+                        "total_duration": {"$sum": "$queries.execution_duration"}
                     }
                 },
                 {
-                    "$sort": {"total_duration": -1}
+                    "$facet": {
+                        "results": [
+                            {"$sort": {"total_duration": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
                 },
                 {
-                    "$limit": limit
-                },
-                {
-                    "$skip": skip
+                    "$project": {
+                        "results": 1,
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
+                    }
                 }
-            ]), many=True)
+            ])
+        )[0]
+
         try:
-            return CustomResponse.successful_200(serializer.data)
+            serializer = MostSlowQueriesSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
@@ -207,18 +219,11 @@ class MostUsedEndpointsView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = MostUsedEndpointsSerializer(
+        result = list(
             Query.aggregate([
                 {
                     "$match": {
-                        "$and": [
-                            {
-                                "request_execution_datetime": {"$gte": from_date}
-                            },
-                            {
-                                "request_execution_datetime": {"$lte": to_date}
-                            }
-                        ]
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date}
                     }
                 },
                 {
@@ -228,24 +233,35 @@ class MostUsedEndpointsView(views.APIView):
                     }
                 },
                 {
-                    "$project": {
-                        "_id": 0,
-                        "request_path": "$_id",
-                        "total_usage": 1
+                    "$facet": {
+                        "results": [
+                            {"$sort": {"total_usage": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
                     }
                 },
                 {
-                    "$sort": {"total_usage": -1}
-                },
-                {
-                    "$limit": limit
-                },
-                {
-                    "$skip": skip
+                    "$project": {
+                        "results": {
+                            "_id": 0,
+                            "request_path": "$_id",
+                            "total_usage": 1
+                        },
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
+                    }
                 }
-            ]), many=True)
+            ])
+        )[0]
+
         try:
-            return CustomResponse.successful_200(serializer.data)
+            serializer = MostUsedEndpointsSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
@@ -269,46 +285,51 @@ class MostUsedTablesView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = MostUsedTablesSerializer(
-            Query.aggregate(
-                [
-                    {
-                        "$match": {
-                            "$and": [
-                                {
-                                    "request_execution_datetime": {"$gte": from_date}
-                                },
-                                {
-                                    "request_execution_datetime": {"$lte": to_date}
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "$unwind": "$queries"
-                    },
-                    {
-                        "$unwind": "$queries.tables"
-                    },
-                    {
-                        "$group": {
-                            "_id": "$queries.tables", "total_usage": {"$sum": 1}
-                        }
-                    },
-                    {
-                        "$project": {
+        result = list(
+            Query.aggregate([
+                {
+                    "$match": {
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date}
+                    }
+                },
+                {"$unwind": "$queries"},
+                {"$unwind": "$queries.tables"},
+                {
+                    "$group": {
+                        "_id": "$queries.tables",
+                        "total_usage": {"$sum": 1}
+                    }
+                },
+                {
+                    "$facet": {
+                        "results": [
+                            {"$sort": {"total_usage": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
+                },
+                {
+                    "$project": {
+                        "results": {
                             "_id": 0,
                             "table_name": "$_id",
                             "total_usage": 1
-                        }
-                    },
-                    {
-                        "$sort": {"total_usage": -1}
+                        },
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
                     }
-                ]
-            ), many=True)
+                }
+            ])
+        )[0]
+
         try:
-            return CustomResponse.successful_200(serializer.data)
+            serializer = MostUsedTablesSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
@@ -332,34 +353,42 @@ class SelectOrPrefetchRelatedPotentialCandidateEndpointsView(views.APIView):
         if not isinstance(skip, int) or skip < 0:
             raise ValueError("Skip must be a non-negative integer.")
 
-        serializer = QueriesSerializer(
+        result = list(
             Query.aggregate(
                 [
                     {
                         "$match": {
-                            "$and": [
-                                {
-                                    "request_execution_datetime": {"$gte": from_date}
-                                },
-                                {
-                                    "request_execution_datetime": {"$lte": to_date}
-                                },
-                                {
-                                    "is_n_plus_one": True
-                                }
-                            ]
+                            "request_execution_datetime": {"$gte": from_date, "$lte": to_date},
+                            "is_n_plus_one": True
                         }
                     },
                     {
-                        "$limit": limit
+                        "$facet": {
+                            "results": [
+                                {"$skip": skip},
+                                {"$limit": limit}
+                            ],
+                            "count": [{"$count": "total"}]
+                        }
                     },
                     {
-                        "$skip": skip
-                    },
+                        "$project": {
+                            "results": 1,
+                            "count": {"$arrayElemAt": ["$count.total", 0]}
+                        }
+                    }
                 ]
-            ), many=True)
+            )
+        )[0]
+
         try:
-            return CustomResponse.successful_200(serializer.data)
+            # Extract count and results
+            serializer = QueriesSerializer(result["results"], many=True)
+            response_data = {
+                "count": result["count"],
+                "results": serializer.data
+            }
+            return CustomResponse.successful_200(response_data)
         except Exception as e:
             print('e: ', str(e))
             return CustomResponse.server_error('')
