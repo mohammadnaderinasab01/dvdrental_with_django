@@ -452,6 +452,15 @@ class Model(metaclass=NewModelClass):
 
         return Cursor(cls, *args, **kwargs)
 
+    @classmethod
+    def update_one(cls: Type[M], filter: Dict[str, Any], update: Dict[str, Any], **kwargs: Any) -> UpdateResult:
+        """
+        Wrapper for PyMongo's update_one.
+        Updates a single document matching the filter.
+        """
+        coll = cls._get_collection()
+        return coll.update_one(filter, update, **kwargs)
+
     @notinstancemethod
     @classmethod
     def aggregate(
@@ -756,3 +765,4 @@ class Query(Model):
     response_data = Field[Dict[str, Any]](default=None, description="API response data")
     is_n_plus_one = Field[bool](bool, default=False)
     n_plus_one_suggestion = Field[str](str, default=None)
+    index_suggestion = Field[str](str, default=None)

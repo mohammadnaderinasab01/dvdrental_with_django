@@ -57,7 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'database_profiler.middleware.DatabaseMonitoringMiddleware',
+    'database_profiler.middleware.DatabaseMonitoringMiddleware',
 ]
 
 
@@ -177,6 +177,11 @@ LOGGING = {
             'propagate': True,
         },
         'customer.tasks': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'database_profiler.tasks': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,

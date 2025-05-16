@@ -8,6 +8,7 @@ from sqlglot import exp
 import json
 from datetime import datetime as dt
 from django.apps import apps
+from .tasks import analyze_query_for_indexing
 
 
 class DatabaseMonitoringMiddleware:
@@ -172,11 +173,11 @@ class DatabaseMonitoringMiddleware:
 
     def save_queries(self):
         """
-        Save captured queries to the database.
+        Save captured queries to the database and trigger indexing analysis.
         """
         try:
             is_n_plus_one, n_plus_one_suggestion = self.detect_n_plus_one(self.queries)
-            Query.create(
+            query_doc = Query.create(
                 queries=[query for query in self.queries],
                 request_path=self.request_path,
                 request_execution_datetime=self.request_execution_datetime,
@@ -185,6 +186,8 @@ class DatabaseMonitoringMiddleware:
                 is_n_plus_one=is_n_plus_one,
                 n_plus_one_suggestion=n_plus_one_suggestion
             )
+            # Trigger Celery task
+            analyze_query_for_indexing.delay(str(query_doc["_id"]))
         except Exception as e:
             print(str(e))
         finally:
