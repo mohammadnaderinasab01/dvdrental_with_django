@@ -187,7 +187,7 @@ class DatabaseMonitoringMiddleware:
                 n_plus_one_suggestion=n_plus_one_suggestion
             )
             # Trigger Celery task
-            analyze_query_for_indexing.delay(str(query_doc["_id"]))
+            # analyze_query_for_indexing.delay(str(query_doc["_id"]))
         except Exception as e:
             print(str(e))
         finally:
