@@ -2,7 +2,8 @@ from rest_framework import views
 from utils.responses import CustomResponse
 from pymongo_wrapper.model import Query
 from .serializers import QueriesSerializer, QueriesRequestSerializer, QueriesRequestBaseSerializer, \
-    MostSlowQueriesSerializer, SlowQueriesSerializer, MostUsedEndpointsSerializer, MostUsedTablesSerializer
+    MostSlowQueriesSerializer, SlowQueriesSerializer, MostUsedEndpointsSerializer, MostUsedTablesSerializer, \
+    MostUsedQueriesSerializer
 from drf_spectacular.utils import extend_schema
 import os
 from dotenv import load_dotenv
@@ -292,6 +293,70 @@ class MostUsedTablesView(views.APIView):
 
         try:
             serializer = MostUsedTablesSerializer(result["results"], many=True)
+            response_data = {"count": result["count"], "results": serializer.data}
+            return CustomResponse.successful_200(response_data)
+        except Exception as e:
+            print('e: ', str(e))
+            return CustomResponse.server_error('')
+
+
+class MostUsedQueriesView(views.APIView):
+    @extend_schema(parameters=[QueriesRequestBaseSerializer])
+    def get(self, request):
+        request_serializer = QueriesRequestBaseSerializer(data=request.query_params)
+        if not request_serializer.is_valid():
+            return CustomResponse.bad_request(request_serializer.errors)
+
+        limit = request_serializer.validated_data.get('limit')
+        skip = request_serializer.validated_data.get('skip')
+        from_date = request_serializer.validated_data.get('from_date')
+        to_date = request_serializer.validated_data.get('to_date')
+
+        result = list(
+            Query.aggregate([
+                {
+                    "$match": {
+                        "request_execution_datetime": {"$gte": from_date, "$lte": to_date},
+                        "is_n_plus_one": True
+                    }
+                },
+                {
+                    "$unwind": "$queries"
+                },
+                {
+                    "$group": {
+                        "_id": "$queries.sql",
+                        "total_usage": {"$sum": 1}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "query": "$_id",
+                        "total_usage": 1
+                    }
+                },
+                {
+                    "$facet": {
+                        "results": [
+                            {"$sort": {"total_usage": -1}},
+                            {"$skip": skip},
+                            {"$limit": limit}
+                        ],
+                        "count": [{"$count": "total"}]
+                    }
+                },
+                {
+                    "$project": {
+                        "results": 1,
+                        "count": {"$arrayElemAt": ["$count.total", 0]}
+                    }
+                },
+            ])
+        )[0]
+
+        try:
+            serializer = MostUsedQueriesSerializer(result["results"], many=True)
             response_data = {"count": result["count"], "results": serializer.data}
             return CustomResponse.successful_200(response_data)
         except Exception as e:

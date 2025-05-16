@@ -55,3 +55,8 @@ class MostUsedEndpointsSerializer(serializers.Serializer):
 class MostUsedTablesSerializer(serializers.Serializer):
     total_usage = serializers.IntegerField()
     table_name = serializers.CharField()
+
+
+class MostUsedQueriesSerializer(serializers.Serializer):
+    total_usage = serializers.IntegerField()
+    query = serializers.CharField()
