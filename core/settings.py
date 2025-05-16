@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'django_filters',
+    'cacheops',
 ]
 
 MIDDLEWARE = [
@@ -57,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'database_profiler.middleware.DatabaseMonitoringMiddleware',
+    # 'database_profiler.middleware.DatabaseMonitoringMiddleware',
 ]
 
 
@@ -155,18 +156,23 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+CACHEOPS_REDIS = f'redis://:{os.getenv("REDIS_PASSWORD")}@localhost:6379/0'
+CACHEOPS = {
+    'films.*': {'ops': 'all', 'timeout': 60 * 15},
+    'auth.*': {'ops': 'all', 'timeout': 60 * 5},        # Cache auth models for 5min
+}
 # Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
         'file': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': 'celery_tasks.log',  # Logs will be written to this file
         },
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
         },
     },
@@ -186,9 +192,12 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['file'],
+        },
     },
 }
-
 # notifier email Configuration
 MAIL_SERVER_HOST = os.getenv('MAIL_SERVER_HOST')
 NOTIFIER_EMAIL_ADDRESS = os.getenv('NOTIFIER_EMAIL_ADDRESS')

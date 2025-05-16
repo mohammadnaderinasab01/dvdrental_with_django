@@ -10,6 +10,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 cron-descriptor==1.4.5
 Django==5.1.6
+django-cacheops==7.2
 django-celery-beat==2.7.0
 django-cors-headers==4.7.0
 django-filter==25.1
@@ -19,6 +20,7 @@ djangorestframework==3.15.2
 djangorestframework_simplejwt==5.4.0
 dnspython==2.7.0
 drf-spectacular==0.28.0
+funcy==2.0
 gunicorn==23.0.0
 inflection==0.5.1
 jsonschema==4.23.0
@@ -37,6 +39,7 @@ redis==5.2.1
 referencing==0.36.2
 rpds-py==0.22.3
 six==1.17.0
+sqlglot==26.11.1
 sqlparse==0.5.3
 typing_extensions==4.12.2
 tzdata==2025.1
