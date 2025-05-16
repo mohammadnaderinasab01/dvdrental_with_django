@@ -156,11 +156,13 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# django-cacheops Configuration
 CACHEOPS_REDIS = f'redis://:{os.getenv("REDIS_PASSWORD")}@localhost:6379/0'
 CACHEOPS = {
     'films.*': {'ops': 'all', 'timeout': 60 * 15},
     'auth.*': {'ops': 'all', 'timeout': 60 * 5},        # Cache auth models for 5min
 }
+
 # Logging Configuration
 LOGGING = {
     'version': 1,
