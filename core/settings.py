@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'database_profiler.middleware.DatabaseMonitoringMiddleware',
+    'database_profiler.middleware.DatabaseMonitoringMiddleware',
 ]
 
 
@@ -125,10 +125,12 @@ SPECTACULAR_SETTINGS = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv('REDIS_URL'),  # Redis server address and database (e.g., 1)
+        # Redis server address and database (e.g., 1)
+        # "LOCATION": os.getenv('REDIS_URL'),
+        "LOCATION": f'redis://:{os.getenv("REDIS_PASSWORD")}@localhost:6379/0',
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": os.getenv("REDIS_PASSWORD"),  # If Redis requires a password
+            # "PASSWORD": os.getenv("REDIS_PASSWORD"),  # If Redis requires a password
             "CONNECTION_POOL_CLASS": "redis.BlockingConnectionPool",
             "MAX_CONNECTIONS": os.getenv('REDIS_MAX_CONNECTIONS'),
         },

@@ -765,4 +765,4 @@ class Query(Model):
     response_data = Field[Dict[str, Any]](default=None, description="API response data")
     is_n_plus_one = Field[bool](bool, default=False)
     n_plus_one_suggestion = Field[str](str, default=None)
-    index_suggestion = Field[str](str, default=None)
+    # index_suggestion = Field[str](str, default=None)
