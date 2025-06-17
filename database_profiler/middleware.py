@@ -152,8 +152,13 @@ class DatabaseMonitoringMiddleware:
         with connection.execute_wrapper(self._capture_queries):
             response = self.get_response(request)
             try:
-                self.response_data = response.data
-                json.dumps(self.response_data)
+                # self.response_data = response.data
+                # json.dumps(self.response_data)
+
+                # Check if the response has a 'data' attribute (e.g., DRF responses)
+                self.response_data = getattr(response, 'data', None)
+                if self.response_data is not None:
+                    json.dumps(self.response_data)  # Ensure it's JSON-serializable
             except (TypeError, ValueError):
                 self.response_data = None
             self.response_status_code = response.status_code
