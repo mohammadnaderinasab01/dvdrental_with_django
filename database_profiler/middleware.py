@@ -146,6 +146,9 @@ class DatabaseMonitoringMiddleware:
         return result
 
     def __call__(self, request):
+        if '/admin/' in request.path:
+            return self.get_response(request)
+
         self.request_path = request.path
         self.request_execution_datetime = dt.now()
         # Wrap the database execution to capture queries
