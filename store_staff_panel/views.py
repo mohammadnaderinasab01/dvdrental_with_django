@@ -56,13 +56,17 @@ class RentFilmView(views.APIView):
                 staff = Staff.objects.select_for_update().get(user=request.user)
                 film = Film.objects.select_for_update().get(film_id=film_id)
 
-                available_inventories = Inventory.objects.select_for_update().filter(
+                # Step 1: Retrieve inventory objects without FOR UPDATE
+                inventory_ids = Inventory.objects.filter(
                     film_id=film_id, store_id=staff.store_id
                 ).filter(
                     Q(rental__isnull=True) | Q(rental__return_date__isnull=False)
                 ).exclude(
                     rental__return_date__isnull=True
-                )
+                ).values_list('inventory_id', flat=True)
+
+                # Step 2: Apply FOR UPDATE to the filtered subset
+                available_inventories = Inventory.objects.select_for_update().filter(inventory_id__in=inventory_ids)
 
                 end_time = time.time()
                 print(f"Query executed in {end_time - start_time:.4f} seconds")
@@ -95,7 +99,8 @@ class RentFilmView(views.APIView):
             return CustomResponse.not_found(f"staff with user id: {request.user.id} not found.")
         except Film.DoesNotExist:
             return CustomResponse.not_found(f"film with id: {film_id} not found.")
-        except:
+        except Exception as e:
+            print('e: ', e)
             return CustomResponse.server_error('An error occurred')
 
 
